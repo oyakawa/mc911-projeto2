@@ -1,0 +1,6 @@
+.classpath
+iftest.s
+src/llvm/*.class
+src/llvmast/*.class
+bin/llvm/*.class
+bin/llvmast/*.class

@@ -162,10 +162,27 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(IntegerLiteral n){
 		return new LlvmIntegerLiteral(n.value);
-	};
+	}
 	
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
+		
+		// TODO assembler.add(header)
+		
+		int a, b;
+		b = n.methodList.size();
+		for (a = 0; a < b; a++) {
+			MethodDecl method = n.methodList.head;
+			assembler.add(new LlvmDefine(null, null, null)); // TODO fill w/ correct parameters
+			int i, j;
+			j = method.body.size();
+			for (i = 0; i < j; i++) {
+				method.body.head.accept(this);
+				method.body = method.body.tail;
+			}
+			assembler.add(new LlvmCloseDefinition());		
+			method.body = method.body.tail;
+		}
 		return null;
 	}
 	
@@ -281,39 +298,52 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(And n){
+		
+		LlvmValue lhs = n.lhs.accept(this);
+		LlvmValue rhs = n.rhs.accept(this);
 		return null;
+		// TODO check
+		
 	}
 	
 	public LlvmValue visit(LessThan n){
+		
 		LlvmValue v1 = n.lhs.accept(this);
 		LlvmValue v2 = n.rhs.accept(this);
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmIcmp(lhs,9,LlvmPrimitiveType.I32,v1,v2));
 		return lhs;
+		
 	}
 	
 	public LlvmValue visit(Equal n){
+		
 		LlvmValue v1 = n.lhs.accept(this);
 		LlvmValue v2 = n.rhs.accept(this);
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmIcmp(lhs,1,LlvmPrimitiveType.I32,v1,v2));
 		return lhs;
+		
 	}
 	
 	public LlvmValue visit(Minus n){
+		
 		LlvmValue v1 = n.lhs.accept(this);
 		LlvmValue v2 = n.rhs.accept(this);
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmMinus(lhs,LlvmPrimitiveType.I32,v1,v2));
 		return lhs;
+		
 	}
 	
 	public LlvmValue visit(Times n){
+		
 		LlvmValue v1 = n.lhs.accept(this);
 		LlvmValue v2 = n.rhs.accept(this);
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmTimes(lhs,LlvmPrimitiveType.I32,v1,v2));
 		return lhs;
+		
 	}
 	
 	public LlvmValue visit(ArrayLookup n){
@@ -325,7 +355,23 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Call n){
+		
+		/*assembler.add(new LlvmCall(
+				n.object,
+				n.method,
+				n.actuals));
 		return null;
+		
+		for reference: printf call
+		assembler.add(new LlvmCall(
+				new LlvmRegister(LlvmPrimitiveType.I32),
+				LlvmPrimitiveType.I32,
+				pts,				 
+				"@printf",
+				args
+				));*/
+		return null;
+		
 	}
 	
 	public LlvmValue visit(True n){
@@ -345,8 +391,11 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(This n){
-		return null;
+		
+		return n.accept(this);
+		// TODO check if this is really enough
 	}
+	
 	
 	public LlvmValue visit(NewArray n){
 		return null;
@@ -357,7 +406,11 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Not n){
+		
+		LlvmValue exp = n.exp.accept(this);
+		// TODO return bool value opposite to exp
 		return null;
+		
 	}
 	
 	public LlvmValue visit(Identifier n){

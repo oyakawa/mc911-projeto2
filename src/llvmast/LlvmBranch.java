@@ -20,7 +20,7 @@ public  class LlvmBranch extends LlvmInstruction{
 
     public String toString(){
 		if(conditional)
-			return "  br i1 " + cond + ", label " + label1 + ", label " + label2;
-		return "  br label " + label1;
+			return "  br i1 " + cond + ", label %" + label1 + ", label %" + label2;
+		return "  br label %" + label1;
     }
 }

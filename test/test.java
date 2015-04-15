@@ -5,7 +5,7 @@ class m309
   {
     if (true) {
       System.out.println(10 * 2);
-      System.out.println(10 * 3);
+      System.out.println(10 + 3);
       System.out.println(10 * 4);
     } else { 
       System.out.println(10 - 2);
