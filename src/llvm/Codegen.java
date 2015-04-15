@@ -167,14 +167,19 @@ public class Codegen extends VisitorAdapter{
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
 		
-		// TODO assembler.add(header)
+		int a, b, i, j;
+		List<LlvmType> locals = new ArrayList<LlvmType>();
 		
-		int a, b;
+		b = n.varList.size();
+		for (a = 0; a < b; a++) {
+			// TODO fill locals list
+		}
+		
+		
 		b = n.methodList.size();
 		for (a = 0; a < b; a++) {
 			MethodDecl method = n.methodList.head;
 			assembler.add(new LlvmDefine(null, null, null)); // TODO fill w/ correct parameters
-			int i, j;
 			j = method.body.size();
 			for (i = 0; i < j; i++) {
 				method.body.head.accept(this);
@@ -301,8 +306,11 @@ public class Codegen extends VisitorAdapter{
 		
 		LlvmValue lhs = n.lhs.accept(this);
 		LlvmValue rhs = n.rhs.accept(this);
-		return null;
-		// TODO check
+		LlvmRegister mul = new LlvmRegister(lhs.type);
+		assembler.add(new LlvmTimes(mul, lhs.type, lhs, rhs));
+		LlvmRegister res = new LlvmRegister(LlvmPrimitiveType.I1);
+		assembler.add(new LlvmIcmp(res, 2, mul.type, mul, new LlvmIntegerLiteral(0)));
+		return res;
 		
 	}
 	
