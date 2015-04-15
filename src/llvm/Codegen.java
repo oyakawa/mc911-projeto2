@@ -406,11 +406,13 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Not n){
-		
-		LlvmValue exp = n.exp.accept(this);
-		// TODO return bool value opposite to exp
-		return null;
-		
+        LlvmValue v1 = n.exp.accept(this);
+        int value = 0;
+        if (v1.equals(new LlvmBool(1))) {
+        	value = 1;
+        }
+        int ret = 1 - value;
+        return new LlvmBool(ret);
 	}
 	
 	public LlvmValue visit(Identifier n){

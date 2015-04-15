@@ -1,5 +1,5 @@
 .classpath
-iftest.s
+*.s
 src/llvm/*.class
 src/llvmast/*.class
 bin/llvm/*.class
