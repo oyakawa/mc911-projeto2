@@ -167,26 +167,30 @@ public class Codegen extends VisitorAdapter{
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
 		
-		int a, b, i, j;
+		int i, j;
 		List<LlvmType> locals = new ArrayList<LlvmType>();
 		
-		b = n.varList.size();
-		for (a = 0; a < b; a++) {
-			// TODO fill locals list
+		if (n.varList != null) {
+			j = n.varList.size();
+		} else {
+			j = 0;
+		}
+		for (i = 0; i < j; i++) {
+			//locals.add(n.varList.head.type); TODO fill locals list (how?)
+			n.varList = n.varList.tail;
 		}
 		
+		// Adds class declaration
+		assembler.add(new LlvmConstantDeclaration(
+				n.name.s,
+				new LlvmStructure(locals).toString()));
 		
-		b = n.methodList.size();
-		for (a = 0; a < b; a++) {
+		// Adds definitions of the class' methods
+		j = n.methodList.size();
+		for (i = 0; i < j; i++) {
 			MethodDecl method = n.methodList.head;
-			assembler.add(new LlvmDefine(null, null, null)); // TODO fill w/ correct parameters
-			j = method.body.size();
-			for (i = 0; i < j; i++) {
-				method.body.head.accept(this);
-				method.body = method.body.tail;
-			}
-			assembler.add(new LlvmCloseDefinition());		
-			method.body = method.body.tail;
+			visit(method);	
+			n.methodList= n.methodList.tail;
 		}
 		return null;
 	}
@@ -200,6 +204,18 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(MethodDecl n){
+		
+		int i, j;
+		assembler.add(new LlvmDefine(
+				n.name.s, //+"_"+class.name.s(?)
+				null,
+				null)); // TODO fill w/ correct parameters (how?)
+		j = n.body.size();
+		for (i = 0; i < j; i++) {
+			n.body.head.accept(this);
+			n.body = n.body.tail;
+		}
+		assembler.add(new LlvmCloseDefinition());	
 		return null;
 	}
 	
