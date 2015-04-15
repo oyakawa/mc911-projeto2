@@ -295,6 +295,12 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Assign n){
+		/*
+		LlvmValue var = n.var.accept(this);
+		LlvmValue exp = n.exp.accept(this);
+		
+		assembler.add(new LlvmConstantDeclaration(var.toString(), exp.toString()));
+		*/	
 		return null;
 	}
 	
