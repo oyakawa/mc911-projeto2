@@ -1,4 +1,4 @@
-// atributo e parametro com mesmo nome(OK)
+// atributo e parametro com mesmo nome - STILL NOT WORKING
 class m109
 {
     public static void main(String[] args)

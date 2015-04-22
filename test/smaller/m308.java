@@ -1,4 +1,4 @@
-// chamada de metodo virtual(OK)
+// chamada de metodo virtual - STILL NOT WORKING
 class m308
 {
     public static void main(String[] args)

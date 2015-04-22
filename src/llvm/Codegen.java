@@ -365,7 +365,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Assign n){
-		
+		// TODO check it, seems to be simpler than it should.
 		/*
 		LlvmValue var = n.var.accept(this);
 		LlvmValue exp = n.exp.accept(this);
@@ -433,11 +433,22 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayLookup n){
-		return null;
+		// TODO: almost sure it is working, didn't tested yet.
+		LlvmValue index = n.index.accept(this);
+		LlvmValue len = n.array.accept(this);
+		
+		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmPlus lookup = new LlvmPlus(lhs, LlvmPrimitiveType.I32, index, len);
+		assembler.add(lookup);
+				
+		return lhs;
 	}
 	
 	public LlvmValue visit(ArrayLength n){
-		return null;
+		// TODO: almost sure it is working, didn't tested yet.
+		LlvmValue len;
+		len = n.array.type.accept(this);
+		return len;
 	}
 	
 	public LlvmValue visit(Call n){

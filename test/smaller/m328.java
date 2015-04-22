@@ -1,4 +1,4 @@
-// testando array length (OK)
+// testando array length - STILL NOT WORKING
 class m328
 {
    public static void main(String[] args)
