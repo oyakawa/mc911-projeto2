@@ -170,7 +170,7 @@ public class Codegen extends VisitorAdapter{
 		int i, j;
 		StringBuilder locals = new StringBuilder();
 		
-		locals.append("{ ");				
+		locals.append("type { ");				
 		if (n.varList != null) {
 			j = n.varList.size();
 			for (i = 0; i < j; i++) {
@@ -211,22 +211,27 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(MethodDecl n){
 		
 		int i, j;
-		
-		j = n.locals.size();
+
 		List<LlvmValue> args = new ArrayList<LlvmValue>();
-		for(i = 0; i < j; i++) {
-			LlvmValue aux = n.locals.head.accept(this);
-			args.add(aux);
-			n.locals = n.locals.tail;
-		}		
+		if (n.locals != null) {
+			j = n.locals.size();
+			for(i = 0; i < j; i++) {
+				LlvmValue aux = n.locals.head.accept(this);
+				args.add(aux);
+				n.locals = n.locals.tail;
+			}
+		}
 		assembler.add(new LlvmDefine(
 				n.name.s, //+"_"+class.name.s(?)
 				n.returnType.accept(this).type,
 				args)); // TODO check
-		j = n.body.size();
-		for (i = 0; i < j; i++) {
-			n.body.head.accept(this);
-			n.body = n.body.tail;
+		
+		if (n.body != null) {
+			j = n.body.size();
+			for (i = 0; i < j; i++) {
+				n.body.head.accept(this);
+				n.body = n.body.tail;
+			}
 		}
 		assembler.add(new LlvmCloseDefinition());	
 		return null;
@@ -399,20 +404,21 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(Call n){
 		
-		/*List<LlvmValue> args = new ArrayList<LlvmValue>();
+		List<LlvmValue> args = new ArrayList<LlvmValue>();
 		int i, j; 
 		j = n.actuals.size();
 		for(i = 0; i < j; i++){
-			LlvmValue aux = n.actuals.head.accept(this);
+			LlvmValue aux = n.actuals.head.type.accept(this); 
 			args.add(aux);
 			n.actuals = n.actuals.tail;
 		}
+		LlvmType type = n.type.accept(this).type;
 		assembler.add(new LlvmCall(
-				new LlvmRegister(),
-				null,
+				new LlvmRegister(type),
+				type,
 				n.method.s,
 				args
-				));*/
+				));
 		return null;
 		/* for reference: printf call
 		assembler.add(new LlvmCall(

@@ -17,4 +17,9 @@ class teste
 {
 	boolean a;
 	int b;
+	public boolean c()
+	{
+		System.out.println(10 * 3);
+		return true;
+	}
 }
