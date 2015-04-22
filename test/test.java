@@ -7,7 +7,7 @@ class m309
       System.out.println(10 * 2);
       System.out.println(10 + 3);
       System.out.println(10 * 4);
-    } else { 
+    } else {
       System.out.println(10 - 2);
     }
   }
@@ -15,11 +15,17 @@ class m309
 
 class teste
 {
-	boolean a;
-	int b;
-	public boolean c()
-	{
-		System.out.println(10 * 3);
-		return true;
-	}
+  boolean a;
+  int b;
+  public boolean c(boolean x, int y)
+  {
+    System.out.println(10 * 3);
+    return true;
+  }
+  public boolean d()
+  {
+    /*boolean e;
+    e = false;*/
+    return false;
+  }
 }
