@@ -20,7 +20,7 @@ class teste
   public boolean c(boolean x, int y)
   {
     System.out.println(10 * 3);
-    return true;
+    return 1;
   }
   public boolean d()
   {

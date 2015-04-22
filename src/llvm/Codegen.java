@@ -248,10 +248,7 @@ public class Codegen extends VisitorAdapter{
 		if (n.formals != null) {
 			j = n.formals.size();
 			for(i = 0; i < j; i++) {
-				Formal aux = n.formals.head;
-				args.add(new LlvmNamedValue(
-						"%"+aux.name.toString(),
-						aux.type.accept(this).type));
+				args.add(visit(n.formals.head));
 				n.formals = n.formals.tail;
 			}
 		}
@@ -280,7 +277,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Formal n){
-		return null;
+		return new LlvmNamedValue("%"+n.name.s, n.type.accept(this).type);
 	}
 	
 	public LlvmValue visit(IntArrayType n){		
@@ -496,7 +493,12 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(NewObject n){
-		return null;
+		
+		LlvmRegister newObj = new LlvmRegister(n.type.accept(this).type);
+		/*assembler.add(new LlvmAlloca(
+				newObj,
+				numbers));*/	// TODO how to get 'numbers'?
+		return newObj;
 	}
 	
 	public LlvmValue visit(Not n){
