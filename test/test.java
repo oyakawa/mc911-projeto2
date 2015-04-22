@@ -12,3 +12,9 @@ class m309
     }
   }
 }
+
+class teste
+{
+	boolean a;
+	int b;
+}

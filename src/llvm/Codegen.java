@@ -74,7 +74,7 @@ public class Codegen extends VisitorAdapter{
 		// NOTA: Logo, o comando abaixo irá chamar codeGenerator.visit(Program), linha 75
 		p.accept(codeGenerator);
 
-		// Link do printf
+		// Links do printf e do malloc
 		List<LlvmType> pts = new LinkedList<LlvmType>();
 		pts.add(new LlvmPointer(LlvmPrimitiveType.I8));
 		pts.add(LlvmPrimitiveType.DOTDOTDOT);
@@ -168,29 +168,34 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ClassDeclSimple n){
 		
 		int i, j;
-		List<LlvmType> locals = new ArrayList<LlvmType>();
+		StringBuilder locals = new StringBuilder();
 		
+		locals.append("{ ");				
 		if (n.varList != null) {
 			j = n.varList.size();
-		} else {
-			j = 0;
+			for (i = 0; i < j; i++) {
+				LlvmValue aux = n.varList.head.type.accept(this);
+				locals.append(aux.toString());
+				if (i + 1 < j)
+					locals.append(", ");
+				n.varList = n.varList.tail;
+			}
 		}
-		for (i = 0; i < j; i++) {
-			//locals.add(n.varList.head.type); TODO fill locals list (how?)
-			n.varList = n.varList.tail;
-		}
+		locals.append(" }");
 		
 		// Adds class declaration
 		assembler.add(new LlvmConstantDeclaration(
-				n.name.s,
-				new LlvmStructure(locals).toString()));
+				"%class." + n.name.s,
+				locals.toString()));
 		
 		// Adds definitions of the class' methods
-		j = n.methodList.size();
-		for (i = 0; i < j; i++) {
-			MethodDecl method = n.methodList.head;
-			visit(method);	
-			n.methodList= n.methodList.tail;
+		if(n.methodList != null) {
+			j = n.methodList.size();
+			for (i = 0; i < j; i++) {
+				MethodDecl method = n.methodList.head;
+				visit(method);	
+				n.methodList= n.methodList.tail;
+			}
 		}
 		return null;
 	}
@@ -206,10 +211,18 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(MethodDecl n){
 		
 		int i, j;
+		
+		j = n.locals.size();
+		List<LlvmValue> args = new ArrayList<LlvmValue>();
+		for(i = 0; i < j; i++) {
+			LlvmValue aux = n.locals.head.accept(this);
+			args.add(aux);
+			n.locals = n.locals.tail;
+		}		
 		assembler.add(new LlvmDefine(
 				n.name.s, //+"_"+class.name.s(?)
-				null,
-				null)); // TODO fill w/ correct parameters (how?)
+				n.returnType.accept(this).type,
+				args)); // TODO check
 		j = n.body.size();
 		for (i = 0; i < j; i++) {
 			n.body.head.accept(this);
@@ -228,11 +241,11 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(BooleanType n){
-		return null;
+		return new LlvmNamedValue("i1", LlvmPrimitiveType.I1);
 	}
 	
 	public LlvmValue visit(IntegerType n){
-		return null;
+		return new LlvmNamedValue("i32", LlvmPrimitiveType.I32);
 	}
 	
 	public LlvmValue visit(IdentifierType n){
@@ -386,13 +399,22 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(Call n){
 		
-		/*assembler.add(new LlvmCall(
-				n.object,
-				n.method,
-				n.actuals));
+		/*List<LlvmValue> args = new ArrayList<LlvmValue>();
+		int i, j; 
+		j = n.actuals.size();
+		for(i = 0; i < j; i++){
+			LlvmValue aux = n.actuals.head.accept(this);
+			args.add(aux);
+			n.actuals = n.actuals.tail;
+		}
+		assembler.add(new LlvmCall(
+				new LlvmRegister(),
+				null,
+				n.method.s,
+				args
+				));*/
 		return null;
-		
-		for reference: printf call
+		/* for reference: printf call
 		assembler.add(new LlvmCall(
 				new LlvmRegister(LlvmPrimitiveType.I32),
 				LlvmPrimitiveType.I32,
@@ -400,7 +422,6 @@ public class Codegen extends VisitorAdapter{
 				"@printf",
 				args
 				));*/
-		return null;
 		
 	}
 	
