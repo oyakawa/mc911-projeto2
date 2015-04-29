@@ -253,7 +253,8 @@ public class Codegen extends VisitorAdapter{
 			}
 		}
 		assembler.add(new LlvmDefine(
-				n.name.s, //+"_"+class.name.s(?)
+				// TODO: Recover class name (in argument above) after the symbol table.
+				"@__" + n.name.s + "_",
 				n.returnType.accept(this).type,
 				args)); // TODO check
 		
@@ -469,6 +470,7 @@ public class Codegen extends VisitorAdapter{
 				args
 				));
 		return null;
+		
 		/* for reference: printf call
 		assembler.add(new LlvmCall(
 				new LlvmRegister(LlvmPrimitiveType.I32),
