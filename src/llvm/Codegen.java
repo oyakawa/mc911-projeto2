@@ -201,10 +201,10 @@ public class Codegen extends VisitorAdapter{
 			}
 		}
 		assembler.add(new LlvmDefine(
-				// TODO: Recover class name (in argument above) after the symbol table.
-				"@__" + n.name.s + "_",
-				n.returnType.accept(this).type,
-				args)); // TODO check
+			// TODO: Recover class name (in argument above) after the symbol table.
+			"@__" + n.name.s + "_",
+			n.returnType.accept(this).type,
+			args)); // TODO check
 		
 		if (n.locals != null) {
 			j = n.locals.size();
@@ -314,7 +314,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Assign n){
-		
+		// TODO check it, seems to be simpler than it should.
 		/*
 		LlvmValue var = n.var.accept(this);
 		LlvmValue exp = n.exp.accept(this);
@@ -382,7 +382,15 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayLookup n){
-		return null;
+		// TODO: almost sure it is working, didn't tested yet.
+		LlvmValue index = n.index.accept(this);
+		LlvmValue len = n.array.accept(this);
+		
+		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmPlus lookup = new LlvmPlus(lhs, LlvmPrimitiveType.I32, index, len);
+		assembler.add(lookup);
+		
+		return lhs;
 	}
 	
 	public LlvmValue visit(ArrayLength n){
