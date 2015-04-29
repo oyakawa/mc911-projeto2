@@ -101,11 +101,6 @@ public class Codegen extends VisitorAdapter{
 
 	public LlvmValue visit(MainClass n){
 		
-		ClassNode aux = symTab.classes.get(n.className.s);
-		assembler.add(new LlvmConstantDeclaration(
-				aux.getNameClass(),
-				aux.getClassType().toString()));
-		
 		// definicao do main 
 		assembler.add(new LlvmDefine("@main", LlvmPrimitiveType.I32, new LinkedList<LlvmValue>()));
 		assembler.add(new LlvmLabel(new LlvmLabelValue("entry")));
@@ -172,15 +167,73 @@ public class Codegen extends VisitorAdapter{
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
 		
-		ClassNode aux = symTab.classes.get(n.name.s);
+		/*int i, j;
+		StringBuilder locals = new StringBuilder();
+		
+		locals.append("type { ");				
+		if (n.varList != null) {
+			j = n.varList.size();
+			for (i = 0; i < j; i++) {
+				LlvmValue aux = n.varList.head.type.accept(this);
+				locals.append(aux.toString());
+				if (i + 1 < j)
+					locals.append(", ");
+				n.varList = n.varList.tail;
+			}
+		}
+		locals.append(" }");
+		
+		// Adds class declaration
 		assembler.add(new LlvmConstantDeclaration(
-				aux.getNameClass(),
-				aux.getClassType().toString()));
+				"%class." + n.name.s,
+				locals.toString()));
+		
+		// Adds definitions of the class' methods
+		if(n.methodList != null) {
+			j = n.methodList.size();
+			for (i = 0; i < j; i++) {
+				MethodDecl method = n.methodList.head;
+				visit(method);	
+				n.methodList= n.methodList.tail;
+			}
+		}*/
+		ClassNode aux = symTab.classes.get(n.name.s);
 		return null;
 	}
 	
 	public LlvmValue visit(ClassDeclExtends n){
+		/*int i, j;
+		StringBuilder locals = new StringBuilder();
 		
+		locals.append("type { ");
+		locals.append("%class."+n.superClass.s);
+		if (n.varList != null && n.varList.size() > 0) {
+			locals.append(", ");
+			j = n.varList.size();
+			for (i = 0; i < j; i++) {
+				LlvmValue aux = n.varList.head.type.accept(this);
+				locals.append(aux.toString());
+				if (i + 1 < j)
+					locals.append(", ");
+				n.varList = n.varList.tail;
+			}
+		}
+		locals.append(" }");
+		
+		// Adds class declaration
+		assembler.add(new LlvmConstantDeclaration(
+				"%class." + n.name.s,
+				locals.toString()));
+		
+		// Adds definitions of the class' methods
+		if(n.methodList != null) {
+			j = n.methodList.size();
+			for (i = 0; i < j; i++) {
+				MethodDecl method = n.methodList.head;
+				visit(method);	
+				n.methodList= n.methodList.tail;
+			}
+		}*/
 		return null;
 	}
 	
@@ -201,8 +254,7 @@ public class Codegen extends VisitorAdapter{
 			}
 		}
 		assembler.add(new LlvmDefine(
-				// TODO: Recover class name (in argument above) after the symbol table.
-				"@__" + n.name.s + "_",
+				n.name.s, //+"_"+class.name.s(?)
 				n.returnType.accept(this).type,
 				args)); // TODO check
 		
@@ -407,7 +459,6 @@ public class Codegen extends VisitorAdapter{
 				args
 				));
 		return null;
-		
 		/* for reference: printf call
 		assembler.add(new LlvmCall(
 				new LlvmRegister(LlvmPrimitiveType.I32),
@@ -498,10 +549,7 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(MainClass n){
-		classEnv = classes.put(n.className.s, new ClassNode(
-				"%class."+n.className.s,
-				new LlvmStructure(new ArrayList<LlvmType>()), 
-				null));
+		classEnv = classes.put(n.className.s, new ClassNode(n.className.s, null, null));
 		return null;
 	}
 	
@@ -523,7 +571,7 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 	
-		classEnv = classes.put(n.name.s, new ClassNode("%class."+n.name.s, 
+		classEnv = classes.put(n.name.s, new ClassNode(n.name.s, 
 											new LlvmStructure(typeList), 
 											varList)
 	      			);
@@ -560,7 +608,7 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 	
-		classEnv = classes.put(n.name.s, new ClassNode("%class."+n.name.s, 
+		classEnv = classes.put(n.name.s, new ClassNode(n.name.s, 
 											new LlvmStructure(typeList), 
 											varList)
 	      			);
@@ -622,7 +670,6 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		// return new LlvmNamedValue(n.name, LlvmPrimitiveType.I8); TODO check
 		return null;
 	}
 	

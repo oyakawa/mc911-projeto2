@@ -1,0 +1,98 @@
+@.formatting.string = private constant [4 x i8] c"%d\0A\00"
+%class.Tiger = type { [2 x i8 *], %class.Animal }
+%class.Animal = type { [2 x i8 *] }
+%class.Zoo = type { [2 x i8 *] }
+%class.Teste = type { }
+define i32 @main() {
+entry0:
+  %tmp0 = alloca i32
+  store i32 0, i32 * %tmp0
+  %tmp2 = call i8* @malloc ( i32 16)
+  %tmp1 = bitcast i8* %tmp2 to %class.Zoo *
+  call void  @__Zoo_Zoo(%class.Zoo * %tmp1)
+  %tmp3 = call i32  @__Start_Zoo(%class.Zoo * %tmp1)
+  %tmp4 = getelementptr [4 x i8] * @.formatting.string, i32 0, i32 0
+  %tmp5 = call i32 (i8 *, ...)* @printf(i8 * %tmp4, i32 %tmp3)
+  %tmp6 = load i32 * %tmp0
+  ret i32 %tmp6
+}
+define i32 @__Start_Zoo(%class.Zoo *  %this) {
+entry0:
+  %t1 = alloca %class.Tiger *
+  %a = alloca i32
+  %b = alloca i32
+  %tmp1 = call i8* @malloc ( i32 32)
+  %tmp0 = bitcast i8* %tmp1 to %class.Tiger *
+  call void  @__Tiger_Tiger(%class.Tiger * %tmp0)
+  store %class.Tiger * %tmp0, %class.Tiger * * %t1
+  %tmp2 = bitcast %class.Zoo * %this to %class.Zoo *
+  %tmp3 = load %class.Tiger * * %t1
+  %tmp4 = bitcast %class.Tiger * %tmp3 to %class.Animal *
+  %tmp5 = call i32  @__getInfo_Zoo(%class.Zoo * %tmp2, %class.Animal * %tmp4)
+  store i32 %tmp5, i32 * %a
+  %tmp6 = bitcast %class.Zoo * %this to %class.Zoo *
+  %tmp7 = load %class.Tiger * * %t1
+  %tmp8 = bitcast %class.Tiger * %tmp7 to %class.Animal *
+  %tmp9 = call i32  @__getInfo_Zoo(%class.Zoo * %tmp6, %class.Animal * %tmp8)
+  store i32 %tmp9, i32 * %b
+  %tmp10 = load i32 * %a
+  %tmp11 = load i32 * %b
+  %tmp12 = add i32 %tmp10, %tmp11
+  ret i32 %tmp12
+}
+define i32 @__getInfo_Zoo(%class.Zoo *  %this, %class.Animal *  %c) {
+entry0:
+  %c_tmp = alloca %class.Animal *
+  store %class.Animal * %c, %class.Animal * * %c_tmp
+  %tmp0 = load %class.Animal * * %c_tmp
+  %tmp1 = bitcast %class.Animal * %tmp0 to [2 x i8 *] *
+  %tmp2 = getelementptr [2 x i8 *] * %tmp1, i32 0, i32 0
+  %tmp3 = bitcast i8 * * %tmp2 to i32 (%class.Animal *)* *
+  %tmp4 = load i32 (%class.Animal *)* * %tmp3
+  %tmp5 = call i32  %tmp4(%class.Animal * %tmp0)
+  ret i32 %tmp5
+}
+define i32 @__getWeight_Tiger(%class.Tiger *  %this) {
+entry0:
+  ret i32 20
+}
+define i32 @__getWeight2_Tiger(%class.Tiger *  %this) {
+entry0:
+  ret i32 21
+}
+define i32 @__getWeight_Animal(%class.Animal *  %this) {
+entry0:
+  ret i32 0
+}
+define i32 @__getWeight2_Animal(%class.Animal *  %this) {
+entry0:
+  ret i32 1
+}
+define void @__Tiger_Tiger(%class.Tiger *  %this) {
+entry0:
+  %tmp0 = bitcast %class.Tiger * %this to %class.Animal *
+  call void  @__Animal_Animal(%class.Animal * %tmp0)
+  %tmp1 = bitcast %class.Animal * %tmp0 to [2 x i8 *] *
+  %tmp2 = bitcast i32 (%class.Tiger *)* @__getWeight_Tiger to i8 *
+  %tmp3 = getelementptr [2 x i8 *] * %tmp1, i32 0, i32 0
+  store i8 * %tmp2, i8 * * %tmp3
+  %tmp4 = bitcast i32 (%class.Tiger *)* @__getWeight2_Tiger to i8 *
+  %tmp5 = getelementptr [2 x i8 *] * %tmp1, i32 0, i32 1
+  store i8 * %tmp4, i8 * * %tmp5
+  ret void 
+}
+define void @__Animal_Animal(%class.Animal *  %this) {
+entry0:
+  ret void 
+}
+define void @__Zoo_Zoo(%class.Zoo *  %this) {
+entry0:
+  ret void 
+}
+define void @__Teste_Teste(%class.Teste *  %this) {
+entry0:
+  ret void 
+}
+declare i32 @printf (i8 *, ...)
+declare i8 * @malloc (i32)
+

@@ -1,0 +1,37 @@
+class Teste{
+    public static void main(String[] a){
+        System.out.println(new Zoo().Start());
+    }
+}
+class Zoo {
+   public int Start(){
+        Tiger t1;
+        int a;
+        int b;
+        t1 = new Tiger();
+        a = this.getInfo(t1);
+        b = this.getInfo(t1);
+        return a+b;
+    }
+    public int getInfo(Animal c){
+        return c.getWeight();
+    }
+}
+
+class Tiger extends Animal{
+    public int getWeight() {
+        return 20;
+    }
+    public int getWeight2() {
+        return 21;
+    }
+}
+class Animal{
+    public int getWeight() {
+        return 0;
+    }
+
+    public int getWeight2() {
+        return 1;
+    }
+}
