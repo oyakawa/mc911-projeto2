@@ -485,7 +485,8 @@ public class Codegen extends VisitorAdapter{
 /**********************************************************************************/
 
 class SymTab extends VisitorAdapter{
-    public Map<String, ClassNode> classes;     
+    public Map<String, ClassNode> classes;
+    public Map<String, MethodNode> methods;
     private ClassNode classEnv;    //aponta para a classe em uso
     
     public SymTab(){
@@ -521,6 +522,8 @@ class SymTab extends VisitorAdapter{
 		// Constroi VarList com as Variáveis da Classe
 		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
 		int i, j;
+		if(n.methodList != null && n.methodList.size() > 0)
+			typeList.add(new LlvmArray(n.methodList.size(), LlvmPrimitiveType.I8));
 		if(n.varList != null && n.varList.size() > 0){
 			j = n.varList.size();
 			util.List<VarDecl> aux = n.varList;
@@ -630,8 +633,7 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		// return new LlvmNamedValue(n.name, LlvmPrimitiveType.I8); TODO check
-		return null;
+		return new LlvmNamedValue(n.name, new LlvmPointer(LlvmPrimitiveType.I8)); //TODO check
 	}
 	
 	public LlvmValue visit(IntArrayType n){
@@ -652,11 +654,13 @@ class ClassNode extends LlvmType {
 	private String nameClass;
 	private LlvmStructure classType;
 	private List<LlvmValue> varList;
+	private int methodCount;
 	
 	public ClassNode (String nameClass, LlvmStructure classType, List<LlvmValue> varList){
 		this.nameClass = nameClass;
 		this.classType = classType;
 		this.varList = varList;
+		this.setMethodCount(0);
 	}
 
 	public String getNameClass() {
@@ -682,10 +686,53 @@ class ClassNode extends LlvmType {
 	public void setVarList(List<LlvmValue> varList) {
 		this.varList = varList;
 	}
+
+	public int getMethodCount() {
+		return methodCount;
+	}
+
+	public void setMethodCount(int methodCount) {
+		this.methodCount = methodCount;
+	}
 	
 }
 
 class MethodNode {
+	
+	private String nameMethod;
+	private List<LlvmValue> formalList;
+	private Map<String, Integer> indexes;	// Usage: give class name, get method's index on that class
+	
+	public MethodNode(String nameMethod, ArrayList<LlvmValue> formalList){
+		this.nameMethod = nameMethod;
+		this.formalList = formalList;
+		this.indexes = new HashMap<String, Integer>();
+	}
+
+	public String getNameMethod() {
+		return nameMethod;
+	}
+
+	public void setNameMethod(String nameMethod) {
+		this.nameMethod = nameMethod;
+	}
+
+	public List<LlvmValue> getFormalList() {
+		return formalList;
+	}
+
+	public void setFormalList(List<LlvmValue> formalList) {
+		this.formalList = formalList;
+	}
+
+	public Map<String, Integer> getIndexes() {
+		return indexes;
+	}
+
+	public void setIndexes(Map<String, Integer> indexes) {
+		this.indexes = indexes;
+	}
+	
 }
 
 
