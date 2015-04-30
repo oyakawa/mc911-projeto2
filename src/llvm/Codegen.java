@@ -508,7 +508,7 @@ class SymTab extends VisitorAdapter{
 	
 	public LlvmValue visit(MainClass n){
 		classEnv = classes.put(n.className.s, new ClassNode(
-				"%class."+n.className.s,
+				n.className.s,
 				new LlvmStructure(new ArrayList<LlvmType>()), 
 				null));
 		return null;
@@ -523,7 +523,7 @@ class SymTab extends VisitorAdapter{
 		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
 		int i, j;
 		if(n.methodList != null && n.methodList.size() > 0)
-			typeList.add(new LlvmArray(n.methodList.size(), LlvmPrimitiveType.I8));
+			typeList.add(new LlvmArray(n.methodList.size(), new LlvmPointer(LlvmPrimitiveType.I8)));
 		if(n.varList != null && n.varList.size() > 0){
 			j = n.varList.size();
 			util.List<VarDecl> aux = n.varList;
@@ -534,10 +534,10 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 	
-		classEnv = classes.put(n.name.s, new ClassNode("%class."+n.name.s, 
-											new LlvmStructure(typeList), 
-											varList)
-	      			);
+		classEnv = new ClassNode(
+				n.name.s,
+				new LlvmStructure(typeList),
+				varList);
 		
 	    // Percorre n.methodList visitando cada método
 		if(n.methodList != null && n.methodList.size() > 0){
@@ -549,10 +549,14 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 		
+		classEnv = classes.put(n.name.s, classEnv);
+		
 		return null;
 	}
 
 	public LlvmValue visit(ClassDeclExtends n){
+		//TODO update
+		
 		List<LlvmValue> varList = new ArrayList<LlvmValue>();		
 		List<LlvmType> typeList = new ArrayList<LlvmType>();	
 	
@@ -571,7 +575,8 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 	
-		classEnv = classes.put(n.name.s, new ClassNode("%class."+n.name.s, 
+		classEnv = classes.put(n.name.s, new ClassNode(
+											n.name.s, 
 											new LlvmStructure(typeList), 
 											varList)
 	      			);
@@ -588,56 +593,61 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(VarDecl n){
-		return new LlvmNamedValue(n.name.toString(), n.type.accept(this).type);
+		return new LlvmRegister(n.name.s, n.type.accept(this).type); //TODO check if enough
 	}
 	
 	public LlvmValue visit(Formal n){
-		return null;
+		return new LlvmRegister(n.name.s, n.type.accept(this).type);
 	}
 	
 	public LlvmValue visit(MethodDecl n){
 		
+		int i, j;
+		List<LlvmValue> formalList = new ArrayList<LlvmValue>();		
+		List<LlvmValue> localList = new ArrayList<LlvmValue>();
+		
+		// Percorre n.formals
+		if(n.formals != null && n.formals.size() > 0){
+			j = n.formals.size();
+			util.List<Formal> aux2 = n.formals;
+			for(i = 0; i < j; i++) {
+				formalList.add(aux2.head.accept(this));
+				aux2 = aux2.tail;
+			}
+		}
+
+		// Percorre n.locals
+		if(n.locals != null && n.locals.size() > 0){
+			j = n.locals.size();
+			util.List<VarDecl> aux2 = n.locals;
+			for(i = 0; i < j; i++) {
+				localList.add(aux2.head.accept(this));
+				aux2 = aux2.tail;
+			}
+		}
+		
+		MethodNode methodEnv = new MethodNode(
+				"@__" + n.name.s + "_" + classEnv.getNameClass(),
+				formalList,
+				localList);
+		
+		Map<Integer, MethodNode> aux = classEnv.getMethodIndex();
+		aux.put(classEnv.getMethodCount(), methodEnv);	// TODO: throws NullPointerException
+		
+		classEnv.setMethodIndex(aux);
+		classEnv.setMethodCount(classEnv.getMethodCount() + 1);
+		
+		methods.put(methodEnv.getNameMethod(), methodEnv);
+		
 		return null;
-		
-		/*int i, j;
-		StringBuilder locals = new StringBuilder();
-		
-		locals.append("type { ");				
-		if (n.varList != null) {
-			j = n.varList.size();
-			for (i = 0; i < j; i++) {
-				LlvmValue aux = n.varList.head.type.accept(this);
-				locals.append(aux.toString());
-				if (i + 1 < j)
-					locals.append(", ");
-				n.varList = n.varList.tail;
-			}
-		}
-		locals.append(" }");
-		
-		// Adds class declaration
-		assembler.add(new LlvmConstantDeclaration(
-				"%class." + n.name.s,
-				locals.toString()));
-		
-		// Adds definitions of the class' methods
-		if(n.methodList != null) {
-			j = n.methodList.size();
-			for (i = 0; i < j; i++) {
-				MethodDecl method = n.methodList.head;
-				visit(method);	
-				n.methodList= n.methodList.tail;
-			}
-		}
-		return null;*/
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue(n.name, new LlvmPointer(LlvmPrimitiveType.I8)); //TODO check
+		return new LlvmNamedValue(n.name, new LlvmPointer(LlvmPrimitiveType.I8)); //TODO tomorrow
 	}
 	
 	public LlvmValue visit(IntArrayType n){
-		return null;
+		return null; //TODO eventually
 	}
 	
 	public LlvmValue visit(BooleanType n){
@@ -655,6 +665,7 @@ class ClassNode extends LlvmType {
 	private LlvmStructure classType;
 	private List<LlvmValue> varList;
 	private int methodCount;
+	private Map<Integer, MethodNode> methodIndex;	// Usage: give method #, get method's node
 	
 	public ClassNode (String nameClass, LlvmStructure classType, List<LlvmValue> varList){
 		this.nameClass = nameClass;
@@ -694,6 +705,14 @@ class ClassNode extends LlvmType {
 	public void setMethodCount(int methodCount) {
 		this.methodCount = methodCount;
 	}
+
+	public Map<Integer, MethodNode> getMethodIndex() {
+		return methodIndex;
+	}
+
+	public void setMethodIndex(Map<Integer, MethodNode> methodIndex) {
+		this.methodIndex = methodIndex;
+	}
 	
 }
 
@@ -701,12 +720,12 @@ class MethodNode {
 	
 	private String nameMethod;
 	private List<LlvmValue> formalList;
-	private Map<String, Integer> indexes;	// Usage: give class name, get method's index on that class
+	private List<LlvmValue> localList;
 	
-	public MethodNode(String nameMethod, ArrayList<LlvmValue> formalList){
+	public MethodNode(String nameMethod, List<LlvmValue> formalList, List<LlvmValue> localList){
 		this.nameMethod = nameMethod;
 		this.formalList = formalList;
-		this.indexes = new HashMap<String, Integer>();
+		this.setLocalList(localList);
 	}
 
 	public String getNameMethod() {
@@ -725,12 +744,12 @@ class MethodNode {
 		this.formalList = formalList;
 	}
 
-	public Map<String, Integer> getIndexes() {
-		return indexes;
+	public List<LlvmValue> getLocalList() {
+		return localList;
 	}
 
-	public void setIndexes(Map<String, Integer> indexes) {
-		this.indexes = indexes;
+	public void setLocalList(List<LlvmValue> localList) {
+		this.localList = localList;
 	}
 	
 }
