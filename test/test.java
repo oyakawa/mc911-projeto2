@@ -24,8 +24,12 @@ class teste
   }
   public boolean d()
   {
-    /*boolean e;
-    e = false;*/
+    //boolean e;
+	int[] z;
+	z = new int[2];
+    //e = false;
+	z[1] = 1;
+	System.out.println(z[1]);
     return false;
   }
 }

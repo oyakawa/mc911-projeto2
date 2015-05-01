@@ -119,12 +119,14 @@ public class Codegen extends VisitorAdapter{
 	
 	private int ifCount;
 	private int whileCount;
+	private int entryCount;
 
 
 	public Codegen(){
 		assembler = new LinkedList<LlvmInstruction>();
 		ifCount = 0;
 		whileCount = 0;
+		entryCount = 0;
 	}
 
 	// Método de entrada do Codegen
@@ -171,7 +173,7 @@ public class Codegen extends VisitorAdapter{
 		
 		ClassNode aux = symTab.classes.get(n.className.s);
 		assembler.add(new LlvmConstantDeclaration(
-				aux.getNameClass(),
+				aux.toString(),
 				aux.getClassType().toString()));
 		
 		// definicao do main 
@@ -243,13 +245,12 @@ public class Codegen extends VisitorAdapter{
 		ClassNode classNode = symTab.classes.get(n.name.s);
 		classEnv = classNode;
 		
-		LlvmStructure classType = classNode.getClassType();
 		// List<LlvmValue> varList = classNode.getVarList();
 		Map<Integer, MethodNode> methods = classNode.getMethodIndex();
 		
 		assembler.add(new LlvmConstantDeclaration(
 				classNode.toString(),
-				"type "+classType));
+				"type "+classNode.getClassType()));
 		
 		//for(LlvmValue variable : varList) {
 			// TODO alloca
@@ -273,7 +274,9 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(VarDecl n){
 		
-		return null;		
+		LlvmRegister ret = new LlvmRegister("%"+n.name.s, n.type.accept(this).type);
+		assembler.add(new LlvmAlloca(ret, ret.type, new ArrayList<LlvmValue>()));
+		return ret;
 	}
 	
 	public LlvmValue visit(MethodDecl n){
@@ -281,22 +284,43 @@ public class Codegen extends VisitorAdapter{
 		MethodNode methodNode = symTab.methods.get(
 				"@__"+n.name.s+"_"+classEnv.getNameClass());
 		
+		methodEnv = methodNode;
+		
+		// Add method's definition
 		assembler.add(new LlvmDefine(
 				methodNode.getNameMethod(),
 				methodNode.getMethodType(),
 				methodNode.getFormalList()));
 		
+		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
+		
+		// Allocate space for formals
+		for (util.List<Formal> f = n.formals; f != null; f = f.tail) {
+			f.head.accept(this);
+		}
+		
+		// Allocate space for locals
+		for (util.List<VarDecl> l = n.locals; l != null; l = l.tail) {
+			l.head.accept(this);
+		}
+		
+		// Generate method's body and return
 		for (util.List<Statement> i = n.body; i != null; i = i.tail) {
 			i.head.accept(this);
 		}
 		assembler.add(new LlvmRet(n.returnExp.accept(this)));
 		
+		// Close method's definition
 		assembler.add(new LlvmCloseDefinition());
 		return null;
 	}
 	
 	public LlvmValue visit(Formal n){
-		return null; // TODO update
+		LlvmRegister ret = new LlvmRegister("%"+n.name.s+"_tmp", new LlvmPointer(n.type.accept(this).type));
+		assembler.add(new LlvmAlloca(ret, n.type.accept(this).type, new ArrayList<LlvmValue>()));
+		LlvmRegister content = new LlvmRegister("%"+n.name.s, n.type.accept(this).type);
+		assembler.add(new LlvmStore(content, ret));
+		return ret;
 	}
 	
 	public LlvmValue visit(IntArrayType n){
@@ -384,13 +408,10 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Assign n){
-		// TODO check it, seems to be simpler than it should.
-		/*
-		LlvmValue var = n.var.accept(this);
-		LlvmValue exp = n.exp.accept(this);
 		
-		assembler.add(new LlvmConstantDeclaration(var.toString(), exp.toString()));
-		*/	
+		LlvmValue exp = n.exp.accept(this);
+		LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
+		assembler.add(new LlvmStore(exp, address));
 		return null;
 		
 	}
@@ -468,33 +489,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Call n){
-		
-		List<LlvmValue> args = new ArrayList<LlvmValue>();
-		int i, j; 
-		j = n.actuals.size();
-		for(i = 0; i < j; i++){
-			LlvmValue aux = n.actuals.head.type.accept(this); 
-			args.add(aux);
-			n.actuals = n.actuals.tail;
-		}
-		LlvmType type = n.type.accept(this).type;
-		assembler.add(new LlvmCall(
-				new LlvmRegister(type),
-				type,
-				n.method.s,
-				args
-				));
-		return null;
-		
-		/* for reference: printf call
-		assembler.add(new LlvmCall(
-				new LlvmRegister(LlvmPrimitiveType.I32),
-				LlvmPrimitiveType.I32,
-				pts,				 
-				"@printf",
-				args
-				));*/
-		
+		return null;	// TODO update		
 	}
 	
 	public LlvmValue visit(True n){		
@@ -517,7 +512,12 @@ public class Codegen extends VisitorAdapter{
 	
 	
 	public LlvmValue visit(NewArray n){
-		return null;
+		LlvmRegister array = new LlvmRegister(n.type.accept(this).type);
+		LlvmValue qty = n.size.accept(this);
+		List<LlvmValue> numbers = new ArrayList<LlvmValue>();
+		numbers.add(qty);
+		assembler.add(new LlvmAlloca(array, LlvmPrimitiveType.I32, numbers));
+		return array;
 	}
 	
 	public LlvmValue visit(NewObject n){
@@ -581,7 +581,7 @@ class SymTab extends VisitorAdapter{
 		classEnv = classes.put(n.className.s, new ClassNode(
 				n.className.s,
 				new LlvmStructure(new ArrayList<LlvmType>()), 
-				null));
+				new ArrayList<LlvmValue>()));
 		return null;
 	}
 	

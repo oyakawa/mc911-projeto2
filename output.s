@@ -1,5 +1,5 @@
 @.formatting.string = private constant [4 x i8] c"%d\0A\00"
-m309 = { }
+%class.m309 = { }
 define i32 @main() {
 entry:
   %tmp0 = alloca i32
@@ -26,7 +26,21 @@ ifEnd0:
   ret i32 %tmp13
 }
 %class.teste = type { [2 x i8 *], i1, i32 * }
-define i1 @__c_teste(i1 x, i32 y) {
+define i1 @__c_teste(i1 %x, i32 %y) {
+entry0:
+  %x_tmp = alloca i1
+  store i1 %x, i1 %x_tmp
+  %y_tmp = alloca i32
+  store i32 %y, i32 %y_tmp
+  %tmp14 = mul i32 10, 3
+  %tmp15 = getelementptr [4 x i8] * @.formatting.string, i32 0, i32 0
+  %tmp16 = call i32 (i8 *, ...)* @printf(i8 * %tmp15, i32 %tmp14)
+  ret i32 1
+}
 define i1 @__d_teste() {
+entry1:
+  %e = alloca i1
+  ret i1 false
+}
 declare i32 @printf (i8 *, ...)
 declare i8 * @malloc (i32)
