@@ -35,11 +35,79 @@ como guia no desenvolvimento deste projeto.
 ****************************************************/
 package llvm;
 
-import semant.Env;
-import syntaxtree.*;
-import llvmast.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import java.util.*;
+import llvmast.LlvmAlloca;
+import llvmast.LlvmArray;
+import llvmast.LlvmBool;
+import llvmast.LlvmBranch;
+import llvmast.LlvmCall;
+import llvmast.LlvmCloseDefinition;
+import llvmast.LlvmConstantDeclaration;
+import llvmast.LlvmDefine;
+import llvmast.LlvmExternalDeclaration;
+import llvmast.LlvmGetElementPointer;
+import llvmast.LlvmIcmp;
+import llvmast.LlvmInstruction;
+import llvmast.LlvmIntegerLiteral;
+import llvmast.LlvmLabel;
+import llvmast.LlvmLabelValue;
+import llvmast.LlvmLoad;
+import llvmast.LlvmMinus;
+import llvmast.LlvmNamedValue;
+import llvmast.LlvmPlus;
+import llvmast.LlvmPointer;
+import llvmast.LlvmPrimitiveType;
+import llvmast.LlvmRegister;
+import llvmast.LlvmRet;
+import llvmast.LlvmStore;
+import llvmast.LlvmStructure;
+import llvmast.LlvmTimes;
+import llvmast.LlvmType;
+import llvmast.LlvmValue;
+import semant.Env;
+import syntaxtree.And;
+import syntaxtree.ArrayAssign;
+import syntaxtree.ArrayLength;
+import syntaxtree.ArrayLookup;
+import syntaxtree.Assign;
+import syntaxtree.Block;
+import syntaxtree.BooleanType;
+import syntaxtree.Call;
+import syntaxtree.ClassDecl;
+import syntaxtree.ClassDeclExtends;
+import syntaxtree.ClassDeclSimple;
+import syntaxtree.Equal;
+import syntaxtree.False;
+import syntaxtree.Formal;
+import syntaxtree.Identifier;
+import syntaxtree.IdentifierExp;
+import syntaxtree.IdentifierType;
+import syntaxtree.If;
+import syntaxtree.IntArrayType;
+import syntaxtree.IntegerLiteral;
+import syntaxtree.IntegerType;
+import syntaxtree.LessThan;
+import syntaxtree.MainClass;
+import syntaxtree.MethodDecl;
+import syntaxtree.Minus;
+import syntaxtree.NewArray;
+import syntaxtree.NewObject;
+import syntaxtree.Not;
+import syntaxtree.Plus;
+import syntaxtree.Print;
+import syntaxtree.Program;
+import syntaxtree.Statement;
+import syntaxtree.This;
+import syntaxtree.Times;
+import syntaxtree.True;
+import syntaxtree.VarDecl;
+import syntaxtree.VisitorAdapter;
+import syntaxtree.While;
 
 public class Codegen extends VisitorAdapter{
 	private List<LlvmInstruction> assembler;
@@ -172,10 +240,29 @@ public class Codegen extends VisitorAdapter{
 	// Todos os visit's que devem ser implementados	
 	public LlvmValue visit(ClassDeclSimple n){
 		
-		ClassNode aux = symTab.classes.get(n.name.s);
+		ClassNode classNode = symTab.classes.get(n.name.s);
+		classEnv = classNode;
+		
+		LlvmStructure classType = classNode.getClassType();
+		// List<LlvmValue> varList = classNode.getVarList();
+		Map<Integer, MethodNode> methods = classNode.getMethodIndex();
+		
 		assembler.add(new LlvmConstantDeclaration(
-				aux.getNameClass(),
-				aux.getClassType().toString()));
+				classNode.toString(),
+				"type "+classType));
+		
+		//for(LlvmValue variable : varList) {
+			// TODO alloca
+		//}
+		
+		for (util.List<MethodDecl> c = n.methodList; c != null; c = c.tail) {
+			c.head.accept(this);
+		}
+		
+		MethodNode constructor = symTab.methods.get(
+				"@__"+n.name.s+"_"+n.name.s);
+		// TODO generate constructor code here
+		
 		return null;
 	}
 	
@@ -185,52 +272,35 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(VarDecl n){
+		
 		return null;		
 	}
 	
 	public LlvmValue visit(MethodDecl n){
 		
-		int i, j;
-
-		List<LlvmValue> args = new ArrayList<LlvmValue>();
-		if (n.formals != null) {
-			j = n.formals.size();
-			for(i = 0; i < j; i++) {
-				args.add(visit(n.formals.head));
-				n.formals = n.formals.tail;
-			}
-		}
+		MethodNode methodNode = symTab.methods.get(
+				"@__"+n.name.s+"_"+classEnv.getNameClass());
+		
 		assembler.add(new LlvmDefine(
-			// TODO: Recover class name (in argument above) after the symbol table.
-			"@__" + n.name.s + "_",
-			n.returnType.accept(this).type,
-			args)); // TODO check
+				methodNode.getNameMethod(),
+				methodNode.getMethodType(),
+				methodNode.getFormalList()));
 		
-		if (n.locals != null) {
-			j = n.locals.size();
-			for(i = 0; i < j; i++) {;
-				// define n.locals.head
-				n.locals = n.locals.tail;
-			}
+		for (util.List<Statement> i = n.body; i != null; i = i.tail) {
+			i.head.accept(this);
 		}
+		assembler.add(new LlvmRet(n.returnExp.accept(this)));
 		
-		if (n.body != null) {
-			j = n.body.size();
-			for (i = 0; i < j; i++) {
-				n.body.head.accept(this);
-				n.body = n.body.tail;
-			}
-		}
-		assembler.add(new LlvmCloseDefinition());	
+		assembler.add(new LlvmCloseDefinition());
 		return null;
 	}
 	
 	public LlvmValue visit(Formal n){
-		return new LlvmNamedValue("%"+n.name.s, n.type.accept(this).type);
+		return null; // TODO update
 	}
 	
-	public LlvmValue visit(IntArrayType n){		
-		return new LlvmNamedValue("i32*", LlvmPrimitiveType.I32); // TODO check
+	public LlvmValue visit(IntArrayType n){
+		return new LlvmNamedValue("i32 *", new LlvmPointer(LlvmPrimitiveType.I32));
 	}
 	
 	public LlvmValue visit(BooleanType n){
@@ -242,7 +312,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue("i8", LlvmPrimitiveType.I8); // TODO check
+		return null; // TODO update
 	}
 	
 	public LlvmValue visit(Block n){
@@ -634,11 +704,11 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(VarDecl n){
-		return new LlvmRegister(n.name.s, n.type.accept(this).type); //TODO check if enough
+		return new LlvmRegister("%"+n.name.s, n.type.accept(this).type); //TODO check if enough
 	}
 	
 	public LlvmValue visit(Formal n){
-		return new LlvmRegister(n.name.s, n.type.accept(this).type);
+		return new LlvmRegister("%"+n.name.s, n.type.accept(this).type);
 	}
 	
 	public LlvmValue visit(MethodDecl n){
@@ -701,7 +771,7 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IntArrayType n){
-		return new LlvmNamedValue("array", new LlvmPointer(LlvmPrimitiveType.I32));
+		return new LlvmNamedValue("i32 *", new LlvmPointer(LlvmPrimitiveType.I32));
 	}
 	
 	public LlvmValue visit(BooleanType n){

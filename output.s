@@ -25,6 +25,8 @@ ifEnd0:
   %tmp13 = load i32 * %tmp0
   ret i32 %tmp13
 }
-teste = { [2 x i8 *], i1, i32 * }
+%class.teste = type { [2 x i8 *], i1, i32 * }
+define i1 @__c_teste(i1 x, i32 y) {
+define i1 @__d_teste() {
 declare i32 @printf (i8 *, ...)
 declare i8 * @malloc (i32)
