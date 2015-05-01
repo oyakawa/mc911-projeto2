@@ -43,6 +43,7 @@ import java.util.Map;
 
 import llvmast.LlvmAlloca;
 import llvmast.LlvmArray;
+import llvmast.LlvmBitcast;
 import llvmast.LlvmBool;
 import llvmast.LlvmBranch;
 import llvmast.LlvmCall;
@@ -272,6 +273,7 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ClassDeclExtends n){
 		
 		ClassNode classNode = symTab.classes.get(n.name.s);
+		ClassNode superClass = classNode.getSuperClass();
 		classEnv = classNode;
 		Map<Integer, MethodNode> methods = classNode.getMethodIndex();
 		
@@ -292,6 +294,12 @@ public class Codegen extends VisitorAdapter{
 				constructor.getMethodType(),
 				constructor.getFormalList()));
 		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
+		// TODO complete specific superclass modifications here
+		
+		LlvmRegister superPointer = new LlvmRegister(new LlvmPointer(superClass));
+		LlvmRegister thisPointer = new LlvmRegister("%this", new LlvmPointer(classNode));
+		assembler.add(new LlvmBitcast(superPointer, thisPointer, superPointer.type));
+		
 		assembler.add(new LlvmRet(new LlvmNamedValue("", LlvmPrimitiveType.VOID)));
 		assembler.add(new LlvmCloseDefinition());
 		
@@ -527,7 +535,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierExp n){
-		return new LlvmNamedValue(n.name.s, LlvmPrimitiveType.LABEL); // TODO check
+		return null; // TODO check - change to load or something
 	}
 	
 	public LlvmValue visit(This n){
