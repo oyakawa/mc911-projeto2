@@ -491,6 +491,7 @@ class SymTab extends VisitorAdapter{
     
     public SymTab(){
     	classes = new HashMap<String, ClassNode>();
+    	methods = new HashMap<String, MethodNode>();
     }
 
     public LlvmValue FillTabSymbol(Program n){
@@ -533,11 +534,68 @@ class SymTab extends VisitorAdapter{
 				aux = aux.tail;
 			}
 		}
-	
-		classEnv = new ClassNode(
-				n.name.s,
-				new LlvmStructure(typeList),
-				varList);
+		
+		if(classes.containsKey(n.name.s)) {
+			classEnv = classes.get(n.name.s);
+		} else {
+			classEnv = new ClassNode(
+					n.name.s,
+					new LlvmStructure(typeList),
+					varList);
+		}
+		
+	    // Percorre n.methodList visitando cada método
+		if(n.methodList != null && n.methodList.size() > 0){
+			j = n.methodList.size();
+			util.List<MethodDecl> aux2 = n.methodList;
+			for(i = 0; i < j; i++) {
+				aux2.head.accept(this);
+				aux2 = aux2.tail;
+			}
+		}		
+		
+		MethodNode constructor = new MethodNode(
+				"@__"+n.name.s+"_"+n.name.s, 
+				null, 
+				new ArrayList<LlvmValue>());
+		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
+		constructorFormals.add(new LlvmRegister("%this", classEnv));
+		constructor.setFormalList(constructorFormals);
+		constructor.setMethodType(LlvmPrimitiveType.VOID);
+		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);		
+		
+		classEnv = classes.put(n.name.s, classEnv);		
+		
+		return null;
+	}
+
+	public LlvmValue visit(ClassDeclExtends n){
+		List<LlvmValue> varList = new ArrayList<LlvmValue>();		
+		List<LlvmType> typeList = new ArrayList<LlvmType>();		
+
+		// Constroi VarList com as Variáveis da Classe
+		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
+		int i, j;
+		if(n.methodList != null && n.methodList.size() > 0)
+			typeList.add(new LlvmArray(n.methodList.size(), new LlvmPointer(LlvmPrimitiveType.I8)));
+		if(n.varList != null && n.varList.size() > 0){
+			j = n.varList.size();
+			util.List<VarDecl> aux = n.varList;
+			for(i = 0; i < j; i++) {
+				varList.add(aux.head.accept(this));
+				typeList.add(aux.head.type.accept(this).type);
+				aux = aux.tail;
+			}
+		}
+		
+		if(classes.containsKey(n.name.s)) {
+			classEnv = classes.get(n.name.s);
+		} else {
+			classEnv = new ClassNode(
+					n.name.s,
+					new LlvmStructure(typeList),
+					varList);
+		}
 		
 	    // Percorre n.methodList visitando cada método
 		if(n.methodList != null && n.methodList.size() > 0){
@@ -549,46 +607,29 @@ class SymTab extends VisitorAdapter{
 			}
 		}
 		
+		ClassNode superClass;
+		if(classes.containsKey(n.superClass.s)) {
+			superClass = classes.get(n.superClass.s);
+		} else {
+			superClass = new ClassNode(
+					n.superClass.s,
+					null,
+					new ArrayList<LlvmValue>());
+		}
+		
+		MethodNode constructor = new MethodNode(
+				"@__"+n.name.s+"_"+n.name.s, 
+				null, 
+				new ArrayList<LlvmValue>());
+		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
+		constructorFormals.add(new LlvmRegister("%this", classEnv));
+		constructor.setFormalList(constructorFormals);
+		constructor.setMethodType(LlvmPrimitiveType.VOID);
+		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);	
+		
+		classEnv.setSuperClass(superClass);
 		classEnv = classes.put(n.name.s, classEnv);
 		
-		return null;
-	}
-
-	public LlvmValue visit(ClassDeclExtends n){
-		//TODO update
-		
-		List<LlvmValue> varList = new ArrayList<LlvmValue>();		
-		List<LlvmType> typeList = new ArrayList<LlvmType>();	
-	
-		// Constroi VarList com as Variáveis da Classe
-		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
-		int i, j;
-
-		//varList.add(null);	
-		//typeList.add(null);	TODO get superClass name & type
-		if(n.varList != null && n.varList.size() > 0){
-			j = n.varList.size();
-			for(i = 0; i < j; i++) {
-				varList.add(n.varList.head.accept(this));
-				typeList.add(n.varList.head.type.accept(this).type);
-				n.varList = n.varList.tail;
-			}
-		}
-	
-		classEnv = classes.put(n.name.s, new ClassNode(
-											n.name.s, 
-											new LlvmStructure(typeList), 
-											varList)
-	      			);
-		
-	    // Percorre n.methodList visitando cada método
-		if(n.methodList != null && n.methodList.size() > 0){
-			j = n.methodList.size();
-			for(i = 0; i < j; i++) {
-				n.methodList.head.accept(this);
-				n.methodList = n.methodList.tail;
-			}
-		}
 		return null;
 	}
 	
@@ -631,8 +672,21 @@ class SymTab extends VisitorAdapter{
 				formalList,
 				localList);
 		
+		LlvmValue valueAux =  n.returnType.accept(this);
+		if(valueAux.type == LlvmPrimitiveType.LABEL) {
+			ClassNode classRef;
+			if(classes.containsKey(valueAux.toString())) {
+				classRef = classes.get(valueAux.toString());
+			} else {
+				classRef = new ClassNode(valueAux.toString(), null, new ArrayList<LlvmValue>());
+			}
+			methodEnv.setMethodType(classRef);
+		} else {
+			methodEnv.setMethodType(valueAux.type);
+		}
+		
 		Map<Integer, MethodNode> aux = classEnv.getMethodIndex();
-		aux.put(classEnv.getMethodCount(), methodEnv);	// TODO: throws NullPointerException
+		aux.put(classEnv.getMethodCount(), methodEnv);
 		
 		classEnv.setMethodIndex(aux);
 		classEnv.setMethodCount(classEnv.getMethodCount() + 1);
@@ -643,11 +697,11 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue(n.name, new LlvmPointer(LlvmPrimitiveType.I8)); //TODO tomorrow
+		return new LlvmNamedValue(n.name, LlvmPrimitiveType.LABEL);
 	}
 	
 	public LlvmValue visit(IntArrayType n){
-		return null; //TODO eventually
+		return new LlvmNamedValue("array", new LlvmPointer(LlvmPrimitiveType.I32));
 	}
 	
 	public LlvmValue visit(BooleanType n){
@@ -666,12 +720,14 @@ class ClassNode extends LlvmType {
 	private List<LlvmValue> varList;
 	private int methodCount;
 	private Map<Integer, MethodNode> methodIndex;	// Usage: give method #, get method's node
+	private ClassNode superClass;
 	
 	public ClassNode (String nameClass, LlvmStructure classType, List<LlvmValue> varList){
-		this.nameClass = nameClass;
-		this.classType = classType;
-		this.varList = varList;
+		this.setNameClass(nameClass);
+		this.setClassType(classType);
+		this.setVarList(varList);
 		this.setMethodCount(0);
+		this.setMethodIndex(new HashMap<Integer, MethodNode>());
 	}
 
 	public String getNameClass() {
@@ -714,6 +770,18 @@ class ClassNode extends LlvmType {
 		this.methodIndex = methodIndex;
 	}
 	
+	public String toString() {
+		return "%class." + this.nameClass;
+	}
+
+	public ClassNode getSuperClass() {
+		return superClass;
+	}
+
+	public void setSuperClass(ClassNode superClass) {
+		this.superClass = superClass;
+	}
+	
 }
 
 class MethodNode {
@@ -721,10 +789,11 @@ class MethodNode {
 	private String nameMethod;
 	private List<LlvmValue> formalList;
 	private List<LlvmValue> localList;
+	private LlvmType methodType;
 	
 	public MethodNode(String nameMethod, List<LlvmValue> formalList, List<LlvmValue> localList){
-		this.nameMethod = nameMethod;
-		this.formalList = formalList;
+		this.setNameMethod(nameMethod);
+		this.setFormalList(formalList);
 		this.setLocalList(localList);
 	}
 
@@ -750,6 +819,14 @@ class MethodNode {
 
 	public void setLocalList(List<LlvmValue> localList) {
 		this.localList = localList;
+	}
+
+	public LlvmType getMethodType() {
+		return methodType;
+	}
+
+	public void setMethodType(LlvmType methodType) {
+		this.methodType = methodType;
 	}
 	
 }

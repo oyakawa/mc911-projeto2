@@ -16,7 +16,7 @@ class m309
 class teste
 {
   boolean a;
-  int b;
+  int [] b;
   public boolean c(boolean x, int y)
   {
     System.out.println(10 * 3);
@@ -28,4 +28,13 @@ class teste
     e = false;*/
     return false;
   }
+}
+
+class feriado extends teste
+{
+	public boolean init()
+	{
+		System.out.println(2);
+		return true;
+	}
 }
