@@ -244,30 +244,56 @@ public class Codegen extends VisitorAdapter{
 		
 		ClassNode classNode = symTab.classes.get(n.name.s);
 		classEnv = classNode;
-		
-		// List<LlvmValue> varList = classNode.getVarList();
 		Map<Integer, MethodNode> methods = classNode.getMethodIndex();
 		
 		assembler.add(new LlvmConstantDeclaration(
 				classNode.toString(),
 				"type "+classNode.getClassType()));
 		
-		//for(LlvmValue variable : varList) {
-			// TODO alloca
-		//}
-		
+		// Accept each method
 		for (util.List<MethodDecl> c = n.methodList; c != null; c = c.tail) {
 			c.head.accept(this);
 		}
 		
 		MethodNode constructor = symTab.methods.get(
 				"@__"+n.name.s+"_"+n.name.s);
-		// TODO generate constructor code here
+		// Generate constructor code
+		assembler.add(new LlvmDefine(
+				constructor.getNameMethod(),
+				constructor.getMethodType(),
+				constructor.getFormalList()));
+		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
+		assembler.add(new LlvmRet(new LlvmNamedValue("", LlvmPrimitiveType.VOID)));
+		assembler.add(new LlvmCloseDefinition());
 		
 		return null;
 	}
 	
 	public LlvmValue visit(ClassDeclExtends n){
+		
+		ClassNode classNode = symTab.classes.get(n.name.s);
+		classEnv = classNode;
+		Map<Integer, MethodNode> methods = classNode.getMethodIndex();
+		
+		assembler.add(new LlvmConstantDeclaration(
+				classNode.toString(),
+				"type "+classNode.getClassType()));
+		
+		// Accept each method
+		for (util.List<MethodDecl> c = n.methodList; c != null; c = c.tail) {
+			c.head.accept(this);
+		}
+		
+		MethodNode constructor = symTab.methods.get(
+				"@__"+n.name.s+"_"+n.name.s);
+		// Generate constructor code
+		assembler.add(new LlvmDefine(
+				constructor.getNameMethod(),
+				constructor.getMethodType(),
+				constructor.getFormalList()));
+		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
+		assembler.add(new LlvmRet(new LlvmNamedValue("", LlvmPrimitiveType.VOID)));
+		assembler.add(new LlvmCloseDefinition());
 		
 		return null;
 	}
@@ -336,7 +362,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return null; // TODO update
+		return new LlvmNamedValue(n.name, LlvmPrimitiveType.LABEL); // TODO check
 	}
 	
 	public LlvmValue visit(Block n){
@@ -501,7 +527,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierExp n){
-		return null;
+		return new LlvmNamedValue(n.name.s, LlvmPrimitiveType.LABEL); // TODO check
 	}
 	
 	public LlvmValue visit(This n){
@@ -624,12 +650,13 @@ class SymTab extends VisitorAdapter{
 			}
 		}		
 		
+		// Adds constructor method info
 		MethodNode constructor = new MethodNode(
 				"@__"+n.name.s+"_"+n.name.s, 
 				null, 
 				new ArrayList<LlvmValue>());
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
-		constructorFormals.add(new LlvmRegister("%this", classEnv));
+		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
 		constructor.setMethodType(LlvmPrimitiveType.VOID);
 		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);		
@@ -687,12 +714,13 @@ class SymTab extends VisitorAdapter{
 					new ArrayList<LlvmValue>());
 		}
 		
+		// Add constructor info
 		MethodNode constructor = new MethodNode(
 				"@__"+n.name.s+"_"+n.name.s, 
 				null, 
 				new ArrayList<LlvmValue>());
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
-		constructorFormals.add(new LlvmRegister("%this", classEnv));
+		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
 		constructor.setMethodType(LlvmPrimitiveType.VOID);
 		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);	
