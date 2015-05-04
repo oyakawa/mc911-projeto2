@@ -10,19 +10,19 @@ public class LlvmStructure extends LlvmType{
     	this.typeList = typeList;
     	
     	// Fazendo a contagem do tamanho da estrutura, caso precise de Malloc
-	for (LlvmType T : typeList){
-		if ( T instanceof LlvmPointer ){ 
-			sizeByte += 8;
-		} else {
-			if ( T instanceof LlvmPrimitiveType){
-				if (T.toString().equals("i32")){
-					sizeByte += 4;
-				} else {
-					sizeByte += 1;
-				}	
+		for (LlvmType T : typeList){
+			if ( T instanceof LlvmPointer ){ 
+				sizeByte += 8;
+			} else {
+				if ( T instanceof LlvmPrimitiveType){
+					if (T.toString().equals("i32")){
+						sizeByte += 4;
+					} else {
+						sizeByte += 1;
+					}	
+				}
 			}
 		}
-	}
     }
     
     public String toString() {

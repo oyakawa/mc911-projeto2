@@ -451,6 +451,12 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayAssign n){
+		LlvmValue variable = n.var.accept(this);
+		LlvmValue index    = n.index.accept(this);
+		LlvmValue value    = n.value.accept(this);
+		
+		//LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
+		//assembler.add(new LlvmGetElementPointer(exp, address));
 		return null;
 	}
 	
@@ -539,9 +545,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(This n){
-		
-		return n.accept(this);
-		// TODO check if this is really enough
+		return new LlvmRegister("%this", new LlvmPointer(n.type.accept(this).type));
 	}
 	
 	
@@ -556,10 +560,47 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(NewObject n){
 		
+		ClassNode thisClass = symTab.classes.get(n.className.s);
+		
 		LlvmRegister newObj = new LlvmRegister(n.type.accept(this).type);
-		/*assembler.add(new LlvmAlloca(
+		
+		LlvmRegister addReg = new LlvmRegister(LlvmPrimitiveType.I32);
+		assembler.add(new LlvmPlus(
+				addReg,
+				LlvmPrimitiveType.I32,
+				new LlvmIntegerLiteral(0),
+				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+8)
+				));
+		
+		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
+		List<LlvmValue> listAddReg = new ArrayList<LlvmValue>();
+		listAddReg.add(addReg);
+		
+		assembler.add(new LlvmCall(
+				malReg,
+				new LlvmPointer(LlvmPrimitiveType.I8),
+				"@malloc",
+				listAddReg
+				));
+		  
+		LlvmRegister bitReg = new LlvmRegister(new LlvmPointer(thisClass));
+		
+		
+		assembler.add(new LlvmBitcast(
+				bitReg,
+				malReg,
+				new LlvmPointer(thisClass)
+				));
+		
+		List<LlvmValue> listNewObjReg = new ArrayList<LlvmValue>();
+		listNewObjReg.add(bitReg);
+		assembler.add(new LlvmCall(
 				newObj,
-				numbers));*/	// TODO how to get 'numbers'?
+				new LlvmPointer(thisClass),
+				"@__" + n.className.s + "_" + n.className.s,
+				listNewObjReg
+				));
+
 		return newObj;
 	}
 	
@@ -626,7 +667,8 @@ class SymTab extends VisitorAdapter{
 
 		// Constroi VarList com as Variáveis da Classe
 		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
-		int i, j;
+		int i, j, size;
+		size = 8; // tamanho minimo do tipo pointer
 		if(n.methodList != null && n.methodList.size() > 0)
 			typeList.add(new LlvmArray(n.methodList.size(), new LlvmPointer(LlvmPrimitiveType.I8)));
 		if(n.varList != null && n.varList.size() > 0){
@@ -634,7 +676,8 @@ class SymTab extends VisitorAdapter{
 			util.List<VarDecl> aux = n.varList;
 			for(i = 0; i < j; i++) {
 				varList.add(aux.head.accept(this));
-				typeList.add(aux.head.type.accept(this).type);
+				LlvmType auxType = aux.head.type.accept(this).type;
+				typeList.add(auxType);
 				aux = aux.tail;
 			}
 		}
