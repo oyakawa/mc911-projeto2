@@ -4,10 +4,8 @@ class m309
   public static void main(String[] args)
   {
     if (!false) {
-      System.out.println(10 * 2);
-      System.out.println(10 + 3);
       System.out.println(10 * 4);
-      System.out.println(new teste().c(true,2));
+      //System.out.println(new teste().c(true, 3));
     } else {
       System.out.println(10 - 2);
     }
@@ -16,10 +14,11 @@ class m309
 
 class teste
 {
-  boolean a;
+  teste a;
   int [] b;
   public int c(boolean x, int y)
   {
+	a = new teste();
     System.out.println(10 * 3);
     return 1;
   }

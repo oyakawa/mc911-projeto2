@@ -264,7 +264,7 @@ public class Codegen extends VisitorAdapter{
 				constructor.getMethodType(),
 				constructor.getFormalList()));
 		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
-		assembler.add(new LlvmRet(new LlvmNamedValue("", LlvmPrimitiveType.VOID)));
+		assembler.add(new LlvmRet(new LlvmRegister("%this", constructor.getMethodType())));
 		assembler.add(new LlvmCloseDefinition());
 		
 		return null;
@@ -370,7 +370,8 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue(n.name, LlvmPrimitiveType.LABEL); // TODO check
+		return new LlvmNamedValue("%class." + n.name, new LlvmPointer(
+				LlvmPrimitiveType.I8)); // TODO check
 	}
 	
 	public LlvmValue visit(Block n){
@@ -443,6 +444,7 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(Assign n){
 		
+		LlvmValue var = n.var.accept(this);
 		LlvmValue exp = n.exp.accept(this);
 		LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
 		assembler.add(new LlvmStore(exp, address));
@@ -564,23 +566,18 @@ public class Codegen extends VisitorAdapter{
 		
 		LlvmRegister newObj = new LlvmRegister(n.type.accept(this).type);
 		
-		LlvmRegister addReg = new LlvmRegister(LlvmPrimitiveType.I32);
-		assembler.add(new LlvmPlus(
-				addReg,
-				LlvmPrimitiveType.I32,
-				new LlvmIntegerLiteral(0),
-				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+8)
-				));
 		
 		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
-		List<LlvmValue> listAddReg = new ArrayList<LlvmValue>();
-		listAddReg.add(addReg);
+		List<LlvmValue> listMalReg = new ArrayList<LlvmValue>();
+		listMalReg.add(
+				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+8)
+				);
 		
 		assembler.add(new LlvmCall(
 				malReg,
 				new LlvmPointer(LlvmPrimitiveType.I8),
 				"@malloc",
-				listAddReg
+				listMalReg
 				));
 		  
 		LlvmRegister bitReg = new LlvmRegister(new LlvmPointer(thisClass));
@@ -617,7 +614,11 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Identifier n){
-		return null;
+		
+		if(classEnv.getVarList().contains("%"+n.s)) {
+			//TODO check
+		}
+		return null; //?
 	}
 }
 
@@ -667,8 +668,7 @@ class SymTab extends VisitorAdapter{
 
 		// Constroi VarList com as Variáveis da Classe
 		// Constroi TypeList com os tipos das variáveis da Classe (vai formar a Struct da classe)		
-		int i, j, size;
-		size = 8; // tamanho minimo do tipo pointer
+		int i, j;
 		if(n.methodList != null && n.methodList.size() > 0)
 			typeList.add(new LlvmArray(n.methodList.size(), new LlvmPointer(LlvmPrimitiveType.I8)));
 		if(n.varList != null && n.varList.size() > 0){
@@ -709,7 +709,7 @@ class SymTab extends VisitorAdapter{
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
 		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
-		constructor.setMethodType(LlvmPrimitiveType.VOID);
+		constructor.setMethodType(new LlvmPointer(classEnv));
 		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);		
 		
 		classEnv = classes.put(n.name.s, classEnv);		
@@ -773,7 +773,7 @@ class SymTab extends VisitorAdapter{
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
 		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
-		constructor.setMethodType(LlvmPrimitiveType.VOID);
+		constructor.setMethodType(new LlvmPointer(classEnv));
 		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);	
 		
 		classEnv.setSuperClass(superClass);
@@ -846,7 +846,12 @@ class SymTab extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue(n.name, LlvmPrimitiveType.LABEL);
+		if (classes.containsKey(n.name)) {
+			return new LlvmNamedValue("%class."+n.name, classes.get(n.name));
+		} else {
+			ClassNode temp = new ClassNode(n.name, null, null);
+			return new LlvmNamedValue("%class."+n.name, temp);
+		}
 	}
 	
 	public LlvmValue visit(IntArrayType n){
