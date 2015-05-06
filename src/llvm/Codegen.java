@@ -175,7 +175,7 @@ public class Codegen extends VisitorAdapter{
 		ClassNode aux = symTab.classes.get(n.className.s);
 		assembler.add(new LlvmConstantDeclaration(
 				aux.toString(),
-				aux.getClassType().toString()));
+				"type "+aux.getClassType().toString()));
 		
 		// definicao do main 
 		assembler.add(new LlvmDefine("@main", LlvmPrimitiveType.I32, new LinkedList<LlvmValue>()));
@@ -446,8 +446,12 @@ public class Codegen extends VisitorAdapter{
 		
 		LlvmValue var = n.var.accept(this);
 		LlvmValue exp = n.exp.accept(this);
-		LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
-		assembler.add(new LlvmStore(exp, address));
+		if (var == null) {
+			LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
+			assembler.add(new LlvmStore(exp, address));
+		} else {
+			assembler.add(new LlvmStore(exp, var));
+		}
 		return null;
 		
 	}
@@ -564,7 +568,7 @@ public class Codegen extends VisitorAdapter{
 		
 		ClassNode thisClass = symTab.classes.get(n.className.s);
 		
-		LlvmRegister newObj = new LlvmRegister(n.type.accept(this).type);
+		LlvmRegister newObj = new LlvmRegister(thisClass);
 		
 		
 		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
@@ -615,10 +619,35 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(Identifier n){
 		
-		if(classEnv.getVarList().contains("%"+n.s)) {
-			//TODO check
+		int i = 1;
+		for (LlvmValue lv : classEnv.getVarList()) {
+			LlvmRegister lr = (LlvmRegister) lv;
+			// se referência for encontrada em classEnv (slide 46)
+			if (lr.name.equals("%"+n.s)) {
+				// bitcast no caso de herança (?)
+				// getelementptr
+				LlvmRegister ref = new LlvmRegister(
+						new LlvmPointer(lr.type));
+				List<LlvmValue> offsets = new ArrayList<LlvmValue>();
+				offsets.add(new LlvmIntegerLiteral(0));
+				/* se tipo for array
+				 * if () {
+					
+				}*/
+				//offsets.add(new LlvmIntegerLiteral(i));
+				offsets.add(new LlvmIntegerLiteral(i));
+
+				assembler.add(new LlvmGetElementPointer(
+						ref,
+						new LlvmRegister("%this",
+								new LlvmPointer(classEnv)),
+						offsets
+						));
+				return ref;
+			}
+			i++;
 		}
-		return null; //?
+		return null;
 	}
 }
 
@@ -797,6 +826,7 @@ class SymTab extends VisitorAdapter{
 		List<LlvmValue> localList = new ArrayList<LlvmValue>();
 		
 		// Percorre n.formals
+		formalList.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		if(n.formals != null && n.formals.size() > 0){
 			j = n.formals.size();
 			util.List<Formal> aux2 = n.formals;

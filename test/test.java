@@ -12,7 +12,26 @@ class m309
   }
 }
 
-class teste
+class teste1 {
+	int a;
+}
+
+class teste2 {
+	boolean b;
+	public boolean m() {
+		/*teste1 t;
+		int i;
+		t = new teste1();*/
+		b = false;
+		return true;
+	}
+	
+	public boolean n() {
+		return false;
+	}
+}
+
+/*class teste
 {
   teste a;
   int [] b;
@@ -46,4 +65,4 @@ class feriado extends teste
     System.out.println(2);
     return true;
   }
-}
+}*/
