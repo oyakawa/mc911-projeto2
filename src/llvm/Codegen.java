@@ -294,15 +294,17 @@ public class Codegen extends VisitorAdapter{
 				constructor.getMethodType(),
 				constructor.getFormalList()));
 		assembler.add(new LlvmLabel(new LlvmLabelValue("entry"+entryCount++)));
+		
+		
 		// TODO complete specific superclass modifications here
 		
-		LlvmRegister superPointer = new LlvmRegister(new LlvmPointer(superClass));
-		LlvmRegister thisPointer = new LlvmRegister("%this", new LlvmPointer(classNode));
-		assembler.add(new LlvmBitcast(superPointer, thisPointer, superPointer.type));
+		//LlvmRegister superPointer = new LlvmRegister(new LlvmPointer(superClass));
+		//LlvmRegister thisPointer = new LlvmRegister("%this", new LlvmPointer(classNode));
+		//assembler.add(new LlvmBitcast(superPointer, thisPointer, superPointer.type));
 		
-		assembler.add(new LlvmRet(new LlvmNamedValue("", LlvmPrimitiveType.VOID)));
+		
+		assembler.add(new LlvmRet(new LlvmRegister("%this", constructor.getMethodType())));
 		assembler.add(new LlvmCloseDefinition());
-		
 		return null;
 	}
 	
@@ -408,7 +410,9 @@ public class Codegen extends VisitorAdapter{
 		
 		LlvmLabel ifElse = new LlvmLabel(ifElseLabel);
 		assembler.add(ifElse);
-		n.elseClause.accept(this);
+		if (n.elseClause != null) {
+			n.elseClause.accept(this);
+		}
 		assembler.add(new LlvmBranch(ifEndLabel));
 		
 		LlvmLabel ifEnd = new LlvmLabel(ifEndLabel);
@@ -552,7 +556,19 @@ public class Codegen extends VisitorAdapter{
 		List<LlvmValue> args = new ArrayList<LlvmValue>();
 		int i, j;
 		
-		args.add(n.object.accept(this));
+		/**
+		 * TODO: Testar se o objeto em questão é o %this ou não.
+		 * Se for, converter o tipo dele antes de continuar. 
+		 */
+		if (n.object.toString().equals("this")){
+			LlvmValue thisObj = n.object.accept(this);
+			LlvmValue thisObjPtr = new LlvmRegister(
+					new LlvmPointer(thisObj.type));
+			assembler.add(new LlvmLoad(thisObjPtr, thisObj));
+			args.add(thisObjPtr);
+		} else {	
+			args.add(n.object.accept(this));
+		}
 		if (n.actuals != null) {
 			for (i = 0, j = n.actuals.size(); i < j; i++) {
 				args.add(n.actuals.head.accept(this));
@@ -589,7 +605,12 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(This n){
-		return new LlvmRegister("%this", new LlvmPointer(classEnv));
+		LlvmRegister ret = new LlvmRegister(classEnv);
+		assembler.add(new LlvmLoad(
+				ret,
+				new LlvmRegister("%this", new LlvmPointer(classEnv))
+				));
+		return ret;
 	}
 	
 	
@@ -613,7 +634,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
 		List<LlvmValue> listMalReg = new ArrayList<LlvmValue>();
 		listMalReg.add(
-				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+32)
+				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+8)
 				);
 		
 		assembler.add(new LlvmCall(
