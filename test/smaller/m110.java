@@ -1,4 +1,4 @@
-// atributo e local com mesmo nome - STILL NOT WORKING
+// atributo e local com mesmo nome - OK
 class m110
 {
     public static void main(String[] args)

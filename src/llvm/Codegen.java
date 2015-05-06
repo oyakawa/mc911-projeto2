@@ -257,7 +257,7 @@ public class Codegen extends VisitorAdapter{
 		}
 		
 		MethodNode constructor = symTab.methods.get(
-				"@__"+n.name.s+"_"+n.name.s);
+				"@__"+n.name.s+"Constructor"+"_"+n.name.s);
 		// Generate constructor code
 		assembler.add(new LlvmDefine(
 				constructor.getNameMethod(),
@@ -287,7 +287,7 @@ public class Codegen extends VisitorAdapter{
 		}
 		
 		MethodNode constructor = symTab.methods.get(
-				"@__"+n.name.s+"_"+n.name.s);
+				"@__"+n.name.s+"Constructor"+"_"+n.name.s);
 		// Generate constructor code
 		assembler.add(new LlvmDefine(
 				constructor.getNameMethod(),
@@ -463,6 +463,14 @@ public class Codegen extends VisitorAdapter{
 		LlvmValue index    = n.index.accept(this);
 		LlvmValue value    = n.value.accept(this);
 		
+		/**
+		 *  TODO: Alocar o nó 0 (zero) do Array para servir como
+		 * um nó sentinela. Se a alocação exigir 10 posições de
+		 * vetor, então vamos alocar 11 posições, de 0 a 10, onde
+		 * a posição 0 (zero) contém o tamanho do vetor, e os índices
+		 * de 1 a 10 contém os valores propriamente ditos.
+		 */
+		
 		//LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
 		//assembler.add(new LlvmGetElementPointer(exp, address));
 		return null;
@@ -533,7 +541,9 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayLength n){
-		return null;
+		LlvmValue len;
+		len = n.array.type.accept(this);
+		return len;
 	}
 	
 	public LlvmValue visit(Call n){
@@ -603,7 +613,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
 		List<LlvmValue> listMalReg = new ArrayList<LlvmValue>();
 		listMalReg.add(
-				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+8)
+				new LlvmIntegerLiteral(thisClass.getClassType().sizeByte+32)
 				);
 		
 		assembler.add(new LlvmCall(
@@ -627,7 +637,7 @@ public class Codegen extends VisitorAdapter{
 		assembler.add(new LlvmCall(
 				newObj,
 				new LlvmPointer(thisClass),
-				"@__" + n.className.s + "_" + n.className.s,
+				"@__" + n.className.s + "Constructor" + "_" + n.className.s,
 				listNewObjReg
 				));
 
@@ -779,14 +789,14 @@ class SymTab extends VisitorAdapter{
 		
 		// Adds constructor method info
 		MethodNode constructor = new MethodNode(
-				"@__"+n.name.s+"_"+n.name.s, 
+				"@__"+n.name.s+"Constructor"+"_"+n.name.s, 
 				null, 
 				new ArrayList<LlvmValue>());
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
 		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
 		constructor.setMethodType(new LlvmPointer(classEnv));
-		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);		
+		methods.put("@__"+n.name.s+"Constructor"+"_"+n.name.s, constructor);		
 		
 		classEnv = classes.put(n.name.s, classEnv);		
 		
@@ -843,14 +853,14 @@ class SymTab extends VisitorAdapter{
 		
 		// Add constructor info
 		MethodNode constructor = new MethodNode(
-				"@__"+n.name.s+"_"+n.name.s, 
+				"@__"+n.name.s+"Constructor"+"_"+n.name.s, 
 				null, 
 				new ArrayList<LlvmValue>());
 		List<LlvmValue> constructorFormals = new ArrayList<LlvmValue>();
 		constructorFormals.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		constructor.setFormalList(constructorFormals);
 		constructor.setMethodType(new LlvmPointer(classEnv));
-		methods.put("@__"+n.name.s+"_"+n.name.s, constructor);	
+		methods.put("@__"+n.name.s+"Constructor"+"_"+n.name.s, constructor);	
 		
 		classEnv.setSuperClass(superClass);
 		classEnv = classes.put(n.name.s, classEnv);
