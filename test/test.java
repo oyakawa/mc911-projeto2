@@ -4,7 +4,7 @@ class m309
   public static void main(String[] args)
   {
     if (!false) {
-      System.out.println(10 * 4);
+      System.out.println(new teste2().m(10));
       //System.out.println(new teste().c(true, 3));
     } else {
       System.out.println(10 - 2);
@@ -17,13 +17,13 @@ class teste1 {
 }
 
 class teste2 {
-	boolean b;
-	public boolean m() {
+	int b;
+	public int m(int x) {
 		/*teste1 t;
 		int i;
 		t = new teste1();*/
-		b = false;
-		return true;
+		b = 10;
+		return b;
 	}
 	
 	public boolean n() {

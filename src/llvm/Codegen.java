@@ -308,8 +308,10 @@ public class Codegen extends VisitorAdapter{
 	
 	public LlvmValue visit(VarDecl n){
 		
-		LlvmRegister ret = new LlvmRegister("%"+n.name.s, n.type.accept(this).type);
-		assembler.add(new LlvmAlloca(ret, ret.type, new ArrayList<LlvmValue>()));
+		LlvmRegister ret = new LlvmRegister(
+				"%"+n.name.s, 
+				new LlvmPointer(n.type.accept(this).type));
+		assembler.add(new LlvmAlloca(ret, n.type.accept(this).type, new ArrayList<LlvmValue>()));
 		return ret;
 	}
 	
@@ -519,7 +521,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayLookup n){
-		// TODO: almost sure it is working, didn't tested yet.
+		// TODO: almost sure it is working, didn't test yet.
 		LlvmValue index = n.index.accept(this);
 		LlvmValue len = n.array.accept(this);
 		
@@ -535,7 +537,26 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(Call n){
-		return null;	// TODO update		
+				
+		LlvmRegister ret = new LlvmRegister(n.type.accept(this).type);
+		List<LlvmValue> args = new ArrayList<LlvmValue>();
+		int i, j;
+		
+		args.add(n.object.accept(this));
+		if (n.actuals != null) {
+			for (i = 0, j = n.actuals.size(); i < j; i++) {
+				args.add(n.actuals.head.accept(this));
+				n.actuals = n.actuals.tail;
+			}
+		}
+		
+		assembler.add(new LlvmCall(
+				ret,
+				ret.type,
+				"@__"+n.method.s+"_"+n.object.type.toString(),
+				args
+				));
+		return ret;	// TODO update		
 	}
 	
 	public LlvmValue visit(True n){		
@@ -547,11 +568,18 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierExp n){
-		return null; // TODO check - change to load or something
+		
+		LlvmValue ref = n.name.accept(this);
+		if (ref != null) {
+			LlvmRegister ret = new LlvmRegister(methodEnv.getMethodType());
+			assembler.add(new LlvmLoad(ret, ref));
+			return ret;
+		}
+		return null;
 	}
 	
 	public LlvmValue visit(This n){
-		return new LlvmRegister("%this", new LlvmPointer(n.type.accept(this).type));
+		return new LlvmRegister("%this", new LlvmPointer(classEnv));
 	}
 	
 	
@@ -568,7 +596,8 @@ public class Codegen extends VisitorAdapter{
 		
 		ClassNode thisClass = symTab.classes.get(n.className.s);
 		
-		LlvmRegister newObj = new LlvmRegister(thisClass);
+		LlvmRegister newObj = new LlvmRegister(
+				new LlvmPointer(thisClass));
 		
 		
 		LlvmRegister malReg = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I8));
@@ -634,7 +663,6 @@ public class Codegen extends VisitorAdapter{
 				 * if () {
 					
 				}*/
-				//offsets.add(new LlvmIntegerLiteral(i));
 				offsets.add(new LlvmIntegerLiteral(i));
 
 				assembler.add(new LlvmGetElementPointer(
@@ -647,6 +675,25 @@ public class Codegen extends VisitorAdapter{
 			}
 			i++;
 		}
+		// se não encontrou, deve ser formal do método
+		for (LlvmValue lv : methodEnv.getFormalList()) {
+			LlvmRegister lr = (LlvmRegister) lv;
+			if (lr.name.equals("%"+n.s)) {
+				return new LlvmRegister(
+						"%"+n.s+"_tmp",
+						new LlvmPointer(lr.type));
+			}
+		}
+		// se não encontrou, deve ser local do método
+				for (LlvmValue lv : methodEnv.getLocalList()) {
+					LlvmRegister lr = (LlvmRegister) lv;
+					if (lr.name.equals("%"+n.s)) {
+						return new LlvmRegister
+								(lr.name, new LlvmPointer(lr.type));
+					}
+				}
+		
+		// se ainda não encontrou, erro (?)
 		return null;
 	}
 }
@@ -953,10 +1000,6 @@ class ClassNode extends LlvmType {
 	public void setMethodIndex(Map<Integer, MethodNode> methodIndex) {
 		this.methodIndex = methodIndex;
 	}
-	
-	public String toString() {
-		return "%class." + this.nameClass;
-	}
 
 	public ClassNode getSuperClass() {
 		return superClass;
@@ -964,6 +1007,10 @@ class ClassNode extends LlvmType {
 
 	public void setSuperClass(ClassNode superClass) {
 		this.superClass = superClass;
+	}
+	
+	public String toString() {
+		return "%class." + this.nameClass;
 	}
 	
 }
