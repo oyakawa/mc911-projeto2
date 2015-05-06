@@ -374,8 +374,7 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(IdentifierType n){
-		return new LlvmNamedValue("%class." + n.name, new LlvmPointer(
-				LlvmPrimitiveType.I8)); // TODO check
+		return new LlvmNamedValue("%class." + n.name, symTab.classes.get(n.name)); // TODO check
 	}
 	
 	public LlvmValue visit(Block n){
@@ -556,16 +555,9 @@ public class Codegen extends VisitorAdapter{
 		List<LlvmValue> args = new ArrayList<LlvmValue>();
 		int i, j;
 		
-		/**
-		 * TODO: Testar se o objeto em questão é o %this ou não.
-		 * Se for, converter o tipo dele antes de continuar. 
-		 */
-		if (n.object.toString().equals("this")){
-			LlvmValue thisObj = n.object.accept(this);
-			LlvmValue thisObjPtr = new LlvmRegister(
-					new LlvmPointer(thisObj.type));
-			assembler.add(new LlvmLoad(thisObjPtr, thisObj));
-			args.add(thisObjPtr);
+		//Testa se o objeto em questão é o %this ou não.
+		if (n.object.toString().contains("this")){
+			args.add(new LlvmRegister("%this", new LlvmPointer(classEnv)));
 		} else {	
 			args.add(n.object.accept(this));
 		}

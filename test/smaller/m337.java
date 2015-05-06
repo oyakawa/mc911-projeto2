@@ -1,4 +1,4 @@
-// testando this (erro)
+// testando this - OK
 class m337
 {
    public static void main(String[] args)
