@@ -1,68 +1,23 @@
-// testando operador + (OK)
-class m309
+class mteste
 {
   public static void main(String[] args)
   {
     if (!false) {
-      System.out.println(new teste2().m(10));
-      //System.out.println(new teste().c(true, 3));
+      System.out.println(new teste().c(true, 3));
     } else {
       System.out.println(10 - 2);
     }
   }
 }
 
-class teste1 {
-	int a;
-}
-
-class teste2 {
-	int b;
-	public int m(int x) {
-		/*teste1 t;
-		int i;
-		t = new teste1();*/
-		b = 10;
-		return b;
-	}
-	
-	public boolean n() {
-		return false;
-	}
-}
-
-/*class teste
-{
-  teste a;
-  int [] b;
-  public int c(boolean x, int y)
-  {
-	a = new teste();
-    System.out.println(10 * 3);
+class teste {
+  int [] a;
+  public int c(boolean x, int y) {
+	a = new int[10];
+	System.out.println(100);
+	System.out.println(a.length);
+	//System.out.println(a[1]);
+	//System.out.println(a[2]);
     return 1;
   }
-  public boolean d()
-  {
-    boolean e;
-    e = false;
-    return false;
-  }
-  public boolean e()
-  {
-    int[] z;
-    z = new int[2];
-    //z[0] = 10;
-    //z[1] = 20;
-    //System.out.println(z[0]+z[1]);
-    return false;
-  }
 }
-
-class feriado extends teste
-{
-  public boolean init()
-  {
-    System.out.println(2);
-    return true;
-  }
-}*/

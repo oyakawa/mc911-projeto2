@@ -23,6 +23,6 @@ run:
 	java -classpath src:lib/projeto2.jar main/Main $(INPUT) $(OUTPUT)
 
 clean:
-	rm -f src/llvm/*.class src/llvmast/*.class
+	rm -f src/llvm/*.class src/llvmast/*.class *.s
 
 

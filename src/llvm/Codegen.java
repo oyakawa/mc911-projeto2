@@ -58,6 +58,7 @@ import llvmast.LlvmIntegerLiteral;
 import llvmast.LlvmLabel;
 import llvmast.LlvmLabelValue;
 import llvmast.LlvmLoad;
+import llvmast.LlvmMalloc;
 import llvmast.LlvmMinus;
 import llvmast.LlvmNamedValue;
 import llvmast.LlvmPlus;
@@ -297,11 +298,11 @@ public class Codegen extends VisitorAdapter{
 		
 		
 		// TODO complete specific superclass modifications here
-		
-		//LlvmRegister superPointer = new LlvmRegister(new LlvmPointer(superClass));
-		//LlvmRegister thisPointer = new LlvmRegister("%this", new LlvmPointer(classNode));
-		//assembler.add(new LlvmBitcast(superPointer, thisPointer, superPointer.type));
-		
+		/*
+		LlvmRegister superPointer = new LlvmRegister(new LlvmPointer(superClass));
+		LlvmRegister thisPointer = new LlvmRegister("%this", new LlvmPointer(classNode));
+		assembler.add(new LlvmBitcast(superPointer, thisPointer, superPointer.type));
+		*/
 		
 		assembler.add(new LlvmRet(new LlvmRegister("%this", constructor.getMethodType())));
 		assembler.add(new LlvmCloseDefinition());
@@ -532,21 +533,33 @@ public class Codegen extends VisitorAdapter{
 	}
 	
 	public LlvmValue visit(ArrayLookup n){
-		// TODO: almost sure it is working, didn't test yet.
+
+		LlvmValue array = n.array.accept(this);
 		LlvmValue index = n.index.accept(this);
-		LlvmValue len = n.array.accept(this);
 		
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
-		LlvmPlus lookup = new LlvmPlus(lhs, LlvmPrimitiveType.I32, index, len);
-		assembler.add(lookup);
+		assembler.add(new LlvmPlus(
+				lhs,
+				LlvmPrimitiveType.I32,
+				array,
+				index));
 		
 		return lhs;
 	}
 	
 	public LlvmValue visit(ArrayLength n){
-		LlvmValue len;
-		len = n.array.type.accept(this);
-		return len;
+		// TODO: return sentinela
+		LlvmValue array = n.array.accept(this);
+		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
+		offsets.add(new LlvmIntegerLiteral(0));
+		offsets.add(new LlvmIntegerLiteral(1));
+		assembler.add(new LlvmGetElementPointer(
+				lhs,
+				array,
+				offsets));
+		
+		return lhs;
 	}
 	
 	public LlvmValue visit(Call n){
@@ -588,6 +601,7 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(IdentifierExp n){
 		
 		LlvmValue ref = n.name.accept(this);
+		
 		if (ref != null) {
 			LlvmRegister ret = new LlvmRegister(methodEnv.getMethodType());
 			assembler.add(new LlvmLoad(ret, ref));
@@ -607,11 +621,22 @@ public class Codegen extends VisitorAdapter{
 	
 	
 	public LlvmValue visit(NewArray n){
+		// new array
 		LlvmRegister array = new LlvmRegister(n.type.accept(this).type);
+		// initial size
 		LlvmValue qty = n.size.accept(this);
-		List<LlvmValue> numbers = new ArrayList<LlvmValue>();
-		numbers.add(qty);
-		assembler.add(new LlvmAlloca(array, LlvmPrimitiveType.I32, numbers));
+		// trick: one more space for sentinela node in position zero
+		LlvmRegister size = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmValue one = new LlvmIntegerLiteral(1);
+		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, qty, one));
+
+		// allocate array with size+1 for sentinela node
+		assembler.add(new LlvmMalloc(array, LlvmPrimitiveType.I32, size));
+		
+		/* sentinela (array in position zero) will store the real size
+		 * of the array, that will be indexed from 1 to 'size'. */
+		assembler.add(new LlvmStore(qty, array));
+		
 		return array;
 	}
 	
@@ -682,10 +707,20 @@ public class Codegen extends VisitorAdapter{
 						new LlvmPointer(lr.type));
 				List<LlvmValue> offsets = new ArrayList<LlvmValue>();
 				offsets.add(new LlvmIntegerLiteral(0));
-				/* se tipo for array
-				 * if () {
+				
+				/**
+				 * TODO: se tipo for array, dar algum jeito de remover
+				 * um nível de indireção do LlvmLoad.
+				 * TALVEZ algo similar a função getAdressSpace() definida aqui
+				 * http://www.llvm.org/docs/doxygen/html/classllvm_1_1PointerType.html
+				 * porém o código deste link é em C++
+				 */
+				/*
+				if () {
 					
-				}*/
+				}
+				*/
+				
 				offsets.add(new LlvmIntegerLiteral(i));
 
 				assembler.add(new LlvmGetElementPointer(
@@ -702,19 +737,16 @@ public class Codegen extends VisitorAdapter{
 		for (LlvmValue lv : methodEnv.getFormalList()) {
 			LlvmRegister lr = (LlvmRegister) lv;
 			if (lr.name.equals("%"+n.s)) {
-				return new LlvmRegister(
-						"%"+n.s+"_tmp",
-						new LlvmPointer(lr.type));
+				return new LlvmRegister("%"+n.s+"_tmp",	new LlvmPointer(lr.type));
 			}
 		}
 		// se não encontrou, deve ser local do método
-				for (LlvmValue lv : methodEnv.getLocalList()) {
-					LlvmRegister lr = (LlvmRegister) lv;
-					if (lr.name.equals("%"+n.s)) {
-						return new LlvmRegister
-								(lr.name, new LlvmPointer(lr.type));
-					}
-				}
+		for (LlvmValue lv : methodEnv.getLocalList()) {
+			LlvmRegister lr = (LlvmRegister) lv;
+			if (lr.name.equals("%"+n.s)) {
+				return new LlvmRegister(lr.name, new LlvmPointer(lr.type));
+			}
+		}
 		
 		// se ainda não encontrou, erro (?)
 		return null;
