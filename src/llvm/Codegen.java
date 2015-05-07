@@ -550,16 +550,22 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLength n){
 		// TODO: return sentinela
 		LlvmValue array = n.array.accept(this);
-		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		LlvmRegister address = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
 		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
-		offsets.add(new LlvmIntegerLiteral(0));
+		//offsets.add(new LlvmIntegerLiteral(0));
 		offsets.add(new LlvmIntegerLiteral(1));
 		assembler.add(new LlvmGetElementPointer(
-				lhs,
+				address,
 				array,
 				offsets));
+		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
+		assembler.add(new LlvmLoad(lhs, address));
 		
-		return lhs;
+		LlvmRegister value = new LlvmRegister(LlvmPrimitiveType.I32);
+		assembler.add(new LlvmLoad(value, lhs));
+		
+		//return lhs;
+		return value;
 	}
 	
 	public LlvmValue visit(Call n){
@@ -629,15 +635,35 @@ public class Codegen extends VisitorAdapter{
 		LlvmRegister size = new LlvmRegister(LlvmPrimitiveType.I32);
 		LlvmValue one = new LlvmIntegerLiteral(1);
 		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, qty, one));
-
+		
 		// allocate array with size+1 for sentinela node
 		assembler.add(new LlvmMalloc(array, LlvmPrimitiveType.I32, size));
+		/*
+		List<LlvmValue> numbers = new ArrayList<LlvmValue>();
+		numbers.add(new LlvmIntegerLiteral(0));
+		assembler.add(new LlvmAlloca(
+				array,
+				new LlvmArray(size, LlvmPrimitiveType.I32),
+				numbers));
+		*/
 		
 		/* sentinela (array in position zero) will store the real size
 		 * of the array, that will be indexed from 1 to 'size'. */
-		assembler.add(new LlvmStore(qty, array));
+		//assembler.add(new LlvmStore(qty, array));
 		
-		return array;
+		
+		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
+		//offsets.add(new LlvmIntegerLiteral(0));
+		offsets.add(new LlvmIntegerLiteral(1));
+		
+		assembler.add(new LlvmGetElementPointer(
+				lhs,
+				array,
+				offsets));
+		assembler.add(new LlvmStore(qty, lhs));
+		
+		return lhs;
 	}
 	
 	public LlvmValue visit(NewObject n){
