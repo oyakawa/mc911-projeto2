@@ -537,14 +537,36 @@ public class Codegen extends VisitorAdapter{
 		LlvmValue array = n.array.accept(this);
 		LlvmValue index = n.index.accept(this);
 		
+		
+		/*
+		// new array
+		LlvmRegister array = new LlvmRegister(n.type.accept(this).type);
+		// initial size
+		LlvmValue qty = n.size.accept(this);
+		// trick: one more space for sentinela node in position zero
+		LlvmRegister size = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmValue one = new LlvmIntegerLiteral(1);
+		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, qty, one));
+		
+		// allocate array with size+1 for sentinela node
+		assembler.add(new LlvmMalloc(array, LlvmPrimitiveType.I32, size));
+		
+		/* sentinela (array in position zero) will store the real size
+		 * of the array, that will be indexed from 1 to 'size'.
+		assembler.add(new LlvmStore(qty, array));
+		*/
+		
+		
+		
+		/*
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmPlus(
 				lhs,
 				LlvmPrimitiveType.I32,
 				array,
 				index));
-		
-		return lhs;
+		*/
+		return null;
 	}
 	
 	public LlvmValue visit(ArrayLength n){
@@ -552,8 +574,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmValue array = n.array.accept(this);
 		LlvmRegister address = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
 		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
-		//offsets.add(new LlvmIntegerLiteral(0));
-		offsets.add(new LlvmIntegerLiteral(1));
+		offsets.add(new LlvmIntegerLiteral(0));
 		assembler.add(new LlvmGetElementPointer(
 				address,
 				array,
@@ -561,11 +582,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
 		assembler.add(new LlvmLoad(lhs, address));
 		
-		LlvmRegister value = new LlvmRegister(LlvmPrimitiveType.I32);
-		assembler.add(new LlvmLoad(value, lhs));
-		
-		//return lhs;
-		return value;
+		return lhs;
 	}
 	
 	public LlvmValue visit(Call n){
@@ -638,32 +655,12 @@ public class Codegen extends VisitorAdapter{
 		
 		// allocate array with size+1 for sentinela node
 		assembler.add(new LlvmMalloc(array, LlvmPrimitiveType.I32, size));
-		/*
-		List<LlvmValue> numbers = new ArrayList<LlvmValue>();
-		numbers.add(new LlvmIntegerLiteral(0));
-		assembler.add(new LlvmAlloca(
-				array,
-				new LlvmArray(size, LlvmPrimitiveType.I32),
-				numbers));
-		*/
 		
 		/* sentinela (array in position zero) will store the real size
 		 * of the array, that will be indexed from 1 to 'size'. */
-		//assembler.add(new LlvmStore(qty, array));
+		assembler.add(new LlvmStore(qty, array));
 		
-		
-		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
-		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
-		//offsets.add(new LlvmIntegerLiteral(0));
-		offsets.add(new LlvmIntegerLiteral(1));
-		
-		assembler.add(new LlvmGetElementPointer(
-				lhs,
-				array,
-				offsets));
-		assembler.add(new LlvmStore(qty, lhs));
-		
-		return lhs;
+		return array;
 	}
 	
 	public LlvmValue visit(NewObject n){

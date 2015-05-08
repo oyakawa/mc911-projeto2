@@ -34,16 +34,14 @@ entry0:
   %tmp14 = mul i32 4, %tmp13
   %tmp15 = call i8* @malloc ( i32 %tmp14)
   %tmp12 = bitcast i8* %tmp15 to i32*
-  %tmp16 = getelementptr i32 * %tmp12, i32 1
-  store i32 10, i32 * %tmp16
-  store i32 * %tmp16, i32 * * %tmp11
-  %tmp17 = getelementptr %class.teste * %this, i32 0, i32 1
-  %tmp18 = load i32 * * %tmp17
-  %tmp19 = getelementptr i32 * %tmp18, i32 1
-  %tmp20 = load i32 * %tmp19
-  %tmp21 = load i32 %tmp20
-  %tmp22 = getelementptr [4 x i8] * @.formatting.string, i32 0, i32 0
-  %tmp23 = call i32 (i8 *, ...)* @printf(i8 * %tmp22, i32 %tmp21)
+  store i32 10, i32 * %tmp12
+  store i32 * %tmp12, i32 * * %tmp11
+  %tmp16 = getelementptr %class.teste * %this, i32 0, i32 1
+  %tmp17 = load i32 * * %tmp16
+  %tmp18 = getelementptr i32 %tmp17, i32 0
+  %tmp19 = load i32 * %tmp18
+  %tmp20 = getelementptr [4 x i8] * @.formatting.string, i32 0, i32 0
+  %tmp21 = call i32 (i8 *, ...)* @printf(i8 * %tmp20, i32 %tmp19)
   ret i32 1
 }
 define %class.teste * @__testeConstructor_teste(%class.teste * %this) {
