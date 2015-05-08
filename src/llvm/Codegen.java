@@ -571,15 +571,17 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLength n){
 		// TODO: return sentinela
 		LlvmValue array = n.array.accept(this);
-		LlvmRegister address = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+			
 		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
 		offsets.add(new LlvmIntegerLiteral(0));
+		
+		LlvmRegister ret = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
 		assembler.add(new LlvmGetElementPointer(
-				address,
+				ret,
 				array,
 				offsets));
 		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
-		assembler.add(new LlvmLoad(lhs, address));
+		assembler.add(new LlvmLoad(lhs, ret));
 		
 		return lhs;
 	}
@@ -623,9 +625,30 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(IdentifierExp n){
 		
 		LlvmValue ref = n.name.accept(this);
-		
+
+		LlvmRegister ret = new LlvmRegister(LlvmPrimitiveType.I32);
 		if (ref != null) {
-			LlvmRegister ret = new LlvmRegister(ref.type);
+			
+			for (LlvmValue lv : classEnv.getVarList()) {
+				LlvmRegister lr = (LlvmRegister) lv;
+				// se referência for encontrada em classEnv (slide 46)
+				if (lr.name.equals("%"+n.name.s)) {
+					ret = new LlvmRegister(lr.type);
+				}
+			}
+			for (LlvmValue lv : methodEnv.getFormalList()) {
+				LlvmRegister lr = (LlvmRegister) lv;
+				if (lr.name.equals("%"+n.name.s)) {
+					ret = new LlvmRegister(lr.type);
+				}
+			}
+			// se não encontrou, deve ser local do método
+			for (LlvmValue lv : methodEnv.getLocalList()) {
+				LlvmRegister lr = (LlvmRegister) lv;
+				if (lr.name.equals("%"+n.name.s)) {
+					ret = new LlvmRegister(lr.type);
+				}
+			}
 			assembler.add(new LlvmLoad(ret, ref));
 			return ret;
 		}
