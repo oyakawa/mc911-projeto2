@@ -535,7 +535,6 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLookup n){
 
 		LlvmValue array = n.array.accept(this);
-		LlvmValue index = n.index.accept(this);
 		
 		
 		/*
@@ -626,7 +625,7 @@ public class Codegen extends VisitorAdapter{
 		LlvmValue ref = n.name.accept(this);
 		
 		if (ref != null) {
-			LlvmRegister ret = new LlvmRegister(methodEnv.getMethodType());
+			LlvmRegister ret = new LlvmRegister(ref.type);
 			assembler.add(new LlvmLoad(ret, ref));
 			return ret;
 		}
@@ -767,7 +766,8 @@ public class Codegen extends VisitorAdapter{
 		for (LlvmValue lv : methodEnv.getLocalList()) {
 			LlvmRegister lr = (LlvmRegister) lv;
 			if (lr.name.equals("%"+n.s)) {
-				return new LlvmRegister(lr.name, new LlvmPointer(lr.type));
+				return new LlvmRegister
+						(lr.name, new LlvmPointer(lr.type));
 			}
 		}
 		
