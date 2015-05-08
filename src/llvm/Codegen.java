@@ -462,21 +462,37 @@ public class Codegen extends VisitorAdapter{
 		
 	}
 	
+	/**
+	 *  TODO: Alocar o nó 0 (zero) do Array para servir como
+	 * um nó sentinela. Se a alocação exigir 10 posições de
+	 * vetor, então vamos alocar 11 posições, de 0 a 10, onde
+	 * a posição 0 (zero) contém o tamanho do vetor, e os índices
+	 * de 1 a 10 contém os valores propriamente ditos.
+	 */
 	public LlvmValue visit(ArrayAssign n){
-		LlvmValue variable = n.var.accept(this);
-		LlvmValue index    = n.index.accept(this);
-		LlvmValue value    = n.value.accept(this);
+		LlvmValue array = n.var.accept(this);
+		LlvmValue index = n.index.accept(this);
+		LlvmValue value = n.value.accept(this);
 		
-		/**
-		 *  TODO: Alocar o nó 0 (zero) do Array para servir como
-		 * um nó sentinela. Se a alocação exigir 10 posições de
-		 * vetor, então vamos alocar 11 posições, de 0 a 10, onde
-		 * a posição 0 (zero) contém o tamanho do vetor, e os índices
-		 * de 1 a 10 contém os valores propriamente ditos.
-		 */
+		LlvmRegister size = new LlvmRegister(LlvmPrimitiveType.I32);
+		LlvmValue one = new LlvmIntegerLiteral(1);
+		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, index, one));
+		//LlvmRegister size_four = new LlvmRegister(LlvmPrimitiveType.I32);
+		//assembler.add(new LlvmTimes(size_four, LlvmPrimitiveType.I32, size, new LlvmIntegerLiteral(4)));
 		
-		//LlvmRegister address = new LlvmRegister("%"+n.var.s, new LlvmPointer(exp.type));
-		//assembler.add(new LlvmGetElementPointer(exp, address));
+		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
+		//offsets.add(new LlvmIntegerLiteral(0));
+		offsets.add(size);
+		//offsets.add(size_four);
+		
+		LlvmRegister addr = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		assembler.add(new LlvmLoad(addr, array));
+		
+		assembler.add(new LlvmGetElementPointer(lhs, addr, offsets));
+		
+		assembler.add(new LlvmStore(value, lhs));
+		
 		return null;
 	}
 	
@@ -535,37 +551,23 @@ public class Codegen extends VisitorAdapter{
 	public LlvmValue visit(ArrayLookup n){
 
 		LlvmValue array = n.array.accept(this);
+		LlvmValue index = n.index.accept(this);
 		
-		
-		/*
-		// new array
-		LlvmRegister array = new LlvmRegister(n.type.accept(this).type);
-		// initial size
-		LlvmValue qty = n.size.accept(this);
-		// trick: one more space for sentinela node in position zero
 		LlvmRegister size = new LlvmRegister(LlvmPrimitiveType.I32);
 		LlvmValue one = new LlvmIntegerLiteral(1);
-		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, qty, one));
+		assembler.add(new LlvmPlus(size, LlvmPrimitiveType.I32, index, one));
 		
-		// allocate array with size+1 for sentinela node
-		assembler.add(new LlvmMalloc(array, LlvmPrimitiveType.I32, size));
+		LlvmRegister lhs = new LlvmRegister(new LlvmPointer(LlvmPrimitiveType.I32));
+		List<LlvmValue> offsets = new ArrayList<LlvmValue>();
+		//offsets.add(new LlvmIntegerLiteral(0));
+		offsets.add(size);
+		assembler.add(new LlvmGetElementPointer(lhs, array, offsets));
 		
-		/* sentinela (array in position zero) will store the real size
-		 * of the array, that will be indexed from 1 to 'size'.
-		assembler.add(new LlvmStore(qty, array));
-		*/
+		LlvmRegister ret = new LlvmRegister(LlvmPrimitiveType.I32);
+		assembler.add(new LlvmLoad(ret, lhs));
 		
+		return ret;
 		
-		
-		/*
-		LlvmRegister lhs = new LlvmRegister(LlvmPrimitiveType.I32);
-		assembler.add(new LlvmPlus(
-				lhs,
-				LlvmPrimitiveType.I32,
-				array,
-				index));
-		*/
-		return null;
 	}
 	
 	public LlvmValue visit(ArrayLength n){

@@ -14,8 +14,9 @@ class teste {
   int [] a;
   public int c(boolean x, int y) {
 	a = new int[10];
+	a[1] = 300;
 	//System.out.println(100);
-	System.out.println(a.length);
+	System.out.println(a[1]);
 	//System.out.println(a[1]);
 	//System.out.println(a[2]);
     return 1;
